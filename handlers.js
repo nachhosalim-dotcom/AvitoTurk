@@ -1307,168 +1307,193 @@ function changeLanguage(lang) {
 }
 
 function openAuthModal() {
-const l = byId('tab-login'), r = byId('tab-register'), b = byId('auth-submit-btn');
-if (l) l.innerText = t('Вход');
-if (r) r.innerText = t('Регистрация');
-const isRegActive = !byId('reg-fields')?.classList.contains('hidden');
-if (b) b.innerText = isRegActive ? t('Зарегистрироваться') : t('Войти');
-const uInp = byId('auth-username'), pInp = byId('auth-password'), kInp = byId('auth-kunya'), wInp = byId('auth-whatsapp');
-if (uInp) uInp.placeholder = t('Логин *');
-if (pInp) pInp.placeholder = t('Пароль *');
-if (kInp) kInp.placeholder = t('Имя / Кунья *');
-if (wInp) wInp.placeholder = t('WhatsApp номер * (+90…)');
-const genderLabel = document.querySelector('#modal-auth .text-xs.font-bold.t2.uppercase');
-if (genderLabel) genderLabel.innerText = t('Выберите ваш пол *');
-const maleLbl = document.querySelector('label[for="auth-gender-male"] span');
-const femaleLbl = document.querySelector('label[for="auth-gender-female"] span');
-if (maleLbl) maleLbl.innerText = t('Мужчина');
-if (femaleLbl) femaleLbl.innerText = t('Женщина 🌸');
-const remLbl = byId('auth-remember-me')?.parentElement?.querySelector('span');
-if (remLbl) remLbl.innerText = t('Запомнить мой вход на этом устройстве');
-openModal('modal-auth');
+  const l = byId('tab-login'), r = byId('tab-register'), b = byId('auth-submit-btn');
+  if (l) l.innerText = t('Вход');
+  if (r) r.innerText = t('Регистрация');
+  const isRegActive = !byId('reg-fields')?.classList.contains('hidden');
+  if (b) b.innerText = isRegActive ? t('Зарегистрироваться') : t('Войти');
+  
+  const uInp = byId('auth-username'), pInp = byId('auth-password');
+  if (uInp) uInp.placeholder = t('Логин или WhatsApp *');
+  if (pInp) pInp.placeholder = t('Пароль *');
+
+const regU = byId('reg-username'), regP = byId('reg-password'), regP2 = byId('reg-password-confirm'), regK = byId('reg-kunya'), regW = byId('reg-whatsapp');
+  if (regU) regU.placeholder = currentLang === 'tr' ? 'Kullanıcı Adı *' : 'Логин *';
+  if (regP) regP.placeholder = currentLang === 'tr' ? 'Şifre (en az 6 karakter) *' : 'Пароль (мин. 6 символов) *';
+  if (regP2) regP2.placeholder = currentLang === 'tr' ? 'Şifreyi Tekrar Girin *' : 'Повторите пароль *';
+  if (regK) regK.placeholder = currentLang === 'tr' ? 'İsim / Lakap' : 'Имя / Кунья';
+  if (regW) regW.placeholder = currentLang === 'tr' ? 'WhatsApp Numarası * (+905...)' : 'WhatsApp номер * (+905...)';
+  
+  const genderLabel = byId('reg-gender-label');
+  if (genderLabel) genderLabel.innerText = t('Выберите ваш пол *');
+  const maleLbl = byId('label-gender-male');
+  const femaleLbl = byId('label-gender-female');
+  if (maleLbl) maleLbl.innerText = t('Мужчина');
+  if (femaleLbl) femaleLbl.innerText = t('Женщина 🌸');
+
+  const remLbl = byId('auth-remember-label');
+  if (remLbl) remLbl.innerText = t('Запомнить мой вход на этом устройстве');
+  openModal('modal-auth');
 }
 
 function switchAuthTab(tab) {
-const l = byId('tab-login'), r = byId('tab-register'), f = byId('reg-fields'), lf = byId('login-fields'), b = byId('auth-submit-btn');
-if (tab === 'login') {
-l.style.borderColor = '#0095f6'; l.style.color = '#0095f6';
-r.style.borderColor = 'transparent'; r.style.color = 'var(--ig-text2)';
-if (lf) lf.classList.remove('hidden');
-if (f) f.classList.add('hidden');
-if (b) b.innerText = t('Войти');
-} else {
-r.style.borderColor = '#0095f6'; r.style.color = '#0095f6';
-l.style.borderColor = 'transparent'; l.style.color = 'var(--ig-text2)';
-if (lf) lf.classList.add('hidden');
-if (f) f.classList.remove('hidden');
-if (b) b.innerText = t('Зарегистрироваться');
-}
+  const l = byId('tab-login'), r = byId('tab-register'), f = byId('reg-fields'), lf = byId('login-fields'), b = byId('auth-submit-btn');
+  if (tab === 'login') {
+    l.style.borderColor = '#0095f6'; l.style.color = '#0095f6';
+    r.style.borderColor = 'transparent'; r.style.color = 'var(--ig-text2)';
+    if (lf) lf.classList.remove('hidden');
+    if (f) f.classList.add('hidden');
+    if (b) b.innerText = t('Войти');
+  } else {
+    r.style.borderColor = '#0095f6'; r.style.color = '#0095f6';
+    l.style.borderColor = 'transparent'; l.style.color = 'var(--ig-text2)';
+    if (lf) lf.classList.add('hidden');
+    if (f) f.classList.remove('hidden');
+    if (b) b.innerText = t('Зарегистрироваться');
+  }
 }
 
 async function handleAuthSubmit(e) {
-e.preventDefault();
-const isReg = !byId('reg-fields').classList.contains('hidden');
-const remember = byId('auth-remember-me').checked;
-const btn = byId('auth-submit-btn');
-const originalText = btn.innerText;
-btn.disabled = true;
+  e.preventDefault();
+  const isReg = !byId('reg-fields').classList.contains('hidden');
+  const remember = byId('auth-remember-me').checked;
+  const btn = byId('auth-submit-btn');
+  const originalText = btn.innerText;
+  btn.disabled = true;
 
-if (isReg) {
-  // === РЕГИСТРАЦИЯ ===
-  const username = byId('auth-username').value.trim();
-  const passwordRaw = byId('auth-password').value;
-  const kunya = byId('auth-kunya').value.trim();
-  const whatsappRaw = byId('auth-whatsapp').value.trim();
-  const genderRadio = document.querySelector('input[name="auth-gender"]:checked');
+  if (isReg) {
+    // === ОБЫЧНАЯ СТРОГАЯ РЕГИСТРАЦИЯ ===
+    const username = byId('reg-username')?.value.trim();
+    const passwordRaw = byId('reg-password')?.value;
+    const passwordConfirm = byId('reg-password-confirm')?.value;
+    const kunya = byId('reg-kunya')?.value.trim();
+    const whatsappRaw = byId('reg-whatsapp')?.value.trim();
+    const genderRadio = document.querySelector('input[name="auth-gender"]:checked');
 
-  if (!username || !passwordRaw || !whatsappRaw) {
-    showToast(currentLang === 'tr' ? 'Lütfen tüm zorunlu alanları doldurun' : 'Заполните все обязательные поля', 'warning');
-    btn.disabled = false; return;
-  }
-  if (!genderRadio) {
-    showToast(currentLang === 'tr' ? 'Lütfen cinsiyetinizi seçiniz' : 'Выберите пол', 'warning');
-    btn.disabled = false; return;
-  }
-
-  const waCheck = validateWhatsApp(whatsappRaw);
-  if (!waCheck.valid) {
-    showToast(waCheck.error, 'error');
-    btn.disabled = false; return;
-  }
-
-  if (!supabaseClient) {
-    showToast('Нет соединения с базой данных', 'error');
-    btn.disabled = false; return;
-  }
-
-  btn.innerText = currentLang === 'tr' ? 'Kaydediliyor...' : 'Регистрация...';
-  const passHash = await sha256(passwordRaw);
-  const uid = 'u_' + Date.now();
-
-  try {
-    const { data: regRes, error: regErr } = await supabaseClient.rpc('register_new_user', {
-      p_uid: uid,
-      p_username: username,
-      p_password_hash: passHash,
-      p_kunya: kunya || username,
-      p_gender: genderRadio.value,
-      p_whatsapp: waCheck.number,
-      p_avatar: null
-    });
-
-    if (regErr || !regRes || !regRes.success) {
-      const errMsg = regRes?.error || regErr?.message || '';
-      if (errMsg.includes('duplicate') || errMsg.includes('unique')) {
-        showToast(currentLang === 'tr' ? 'Bu kullanıcı adı zaten kayıtlı' : 'Такой логин уже занят', 'error');
-      } else {
-        showToast(errMsg || 'Ошибка регистрации', 'error');
-      }
-      btn.disabled = false; btn.innerText = originalText; return;
+    if (!username) {
+      showToast(currentLang === 'tr' ? 'Lütfen bir kullanıcı adı girin' : 'Введите логин', 'warning');
+      btn.disabled = false; return;
+    }
+    if (username.length < 3) {
+      showToast(currentLang === 'tr' ? 'Kullanıcı adı en az 3 karakter olmalıdır' : 'Логин должен быть не менее 3 символов', 'warning');
+      btn.disabled = false; return;
+    }
+    if (!passwordRaw || passwordRaw.length < 6) {
+      showToast(currentLang === 'tr' ? 'Şifre en az 6 karakter olmalıdır' : 'Пароль должен быть не менее 6 символов', 'warning');
+      btn.disabled = false; return;
+    }
+    if (passwordRaw !== passwordConfirm) {
+      showToast(currentLang === 'tr' ? 'Şifreler eşleşmiyor' : 'Пароли не совпадают', 'error');
+      btn.disabled = false; return;
+    }
+    if (!genderRadio) {
+      showToast(currentLang === 'tr' ? 'Lütfen cinsiyetinizi seçiniz' : 'Выберите ваш пол', 'warning');
+      btn.disabled = false; return;
+    }
+    if (!whatsappRaw) {
+      showToast(currentLang === 'tr' ? 'WhatsApp numarası zorunludur' : 'Обязательно введите номер WhatsApp', 'warning');
+      btn.disabled = false; return;
     }
 
-    const localUser = regRes.user;
-    users.push(localUser);
-    saveUserSession(localUser, remember);
-    closeModal('modal-auth');
-    showToast(currentLang === 'tr' ? `Hoş geldiniz, ${localUser.kunya || localUser.username}!` : `Добро пожаловать, ${localUser.kunya || localUser.username}!`, 'success');
-  } catch (err) {
-    console.error(err);
-    showToast('Ошибка регистрации', 'error');
-  }
-  btn.disabled = false; btn.innerText = originalText;
+    const waCheck = validateWhatsApp(whatsappRaw);
+    if (!waCheck.valid) {
+      showToast(waCheck.error, 'error');
+      btn.disabled = false; return;
+    }
 
-} else {
-  // === ВХОД ===
-  const loginIdentifier = byId('auth-username').value.trim();
-  const rawPassword = byId('auth-password').value;
+    if (!supabaseClient) {
+      showToast('Нет соединения с базой данных', 'error');
+      btn.disabled = false; return;
+    }
 
-  if (!loginIdentifier || !rawPassword) {
-    showToast(currentLang === 'tr' ? 'Kullanıcı adı ve şifre girin' : 'Введите логин и пароль', 'warning');
-    btn.disabled = false; return;
-  }
+    btn.innerText = currentLang === 'tr' ? 'Kaydediliyor...' : 'Регистрация...';
+    const passHash = await sha256(passwordRaw);
+    const uid = 'u_' + Date.now();
 
-  if (!supabaseClient) {
-    showToast('Нет соединения с базой данных', 'error');
-    btn.disabled = false; return;
-  }
+    try {
+      const { data: regRes, error: regErr } = await supabaseClient.rpc('register_new_user', {
+        p_uid: uid,
+        p_username: username,
+        p_password_hash: passHash,
+        p_kunya: kunya || username,
+        p_gender: genderRadio.value,
+        p_whatsapp: waCheck.number,
+        p_avatar: null
+      });
 
-  btn.innerText = currentLang === 'tr' ? 'Giriş yapılıyor...' : 'Вход...';
-  const password = await sha256(rawPassword);
-
-  try {
-    const { data: res, error } = await supabaseClient.rpc('verify_user_login', {
-      p_username: loginIdentifier,
-      p_password_hash: password
-    });
-
-    if (error) throw error;
-
-    if (res && res.success && res.user) {
-      const foundUser = res.user;
-      if (foundUser.is_archived || foundUser.isArchived) {
-        showToast(currentLang === 'tr' ? 'Hesap arşivlendi' : 'Аккаунт в архиве', 'error');
+      if (regErr || !regRes || !regRes.success) {
+        const errMsg = regRes?.error || regErr?.message || '';
+        if (errMsg.includes('duplicate') || errMsg.includes('unique') || errMsg.includes('already exists')) {
+          showToast(currentLang === 'tr' ? 'Bu kullanıcı adı veya WhatsApp zaten kayıtlı' : 'Логин или номер WhatsApp уже зарегистрированы', 'error');
+        } else {
+          showToast(errMsg || 'Ошибка регистрации', 'error');
+        }
         btn.disabled = false; btn.innerText = originalText; return;
       }
-      const idx = users.findIndex(u => u.uid === foundUser.uid);
-      if (idx !== -1) users[idx] = foundUser;
-      else users.push(foundUser);
 
-      if (Array.isArray(foundUser.favorites)) {
-        favorites = [...new Set([...(Array.isArray(favorites) ? favorites : []), ...foundUser.favorites])];
-        try { localStorage.setItem('bs_favorites', JSON.stringify(favorites)); } catch (err) {}
-      }
-      saveUserSession(foundUser, remember);
+const localUser = regRes.user;
+      users.push(localUser);
+      saveUserSession(localUser, remember);
       closeModal('modal-auth');
-      showToast(currentLang === 'tr' ? `Tekrar hoş geldiniz, ${foundUser.kunya || foundUser.username}!` : `С возвращением, ${foundUser.kunya || foundUser.username}!`, 'success');
-    } else {
-      showToast(currentLang === 'tr' ? 'Geçersiz kullanıcı adı veya şifre' : 'Неверный логин или пароль', 'error');
+      showToast(currentLang === 'tr' ? `Kayıt başarılı! Hoş geldiniz, ${localUser.kunya || localUser.username}!` : `Регистрация завершена! Добро пожаловать, ${localUser.kunya || localUser.username}!`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Ошибка регистрации', 'error');
     }
-  } catch (err) {
-    console.error(err);
-    showToast(currentLang === 'tr' ? 'Giriş hatası' : 'Ошибка входа', 'error');
+    btn.disabled = false; btn.innerText = originalText;
+
+  } else {
+    // === ВХОД ===
+    const loginIdentifier = byId('auth-username').value.trim();
+    const rawPassword = byId('auth-password').value;
+
+    if (!loginIdentifier || !rawPassword) {
+      showToast(currentLang === 'tr' ? 'Kullanıcı adı ve şifre girin' : 'Введите логин и пароль', 'warning');
+      btn.disabled = false; return;
+    }
+
+    if (!supabaseClient) {
+      showToast('Нет соединения с базой данных', 'error');
+      btn.disabled = false; return;
+    }
+
+    btn.innerText = currentLang === 'tr' ? 'Giriş yapılıyor...' : 'Вход...';
+    const password = await sha256(rawPassword);
+
+    try {
+      const { data: res, error } = await supabaseClient.rpc('verify_user_login', {
+        p_username: loginIdentifier,
+        p_password_hash: password
+      });
+
+      if (error) throw error;
+
+      if (res && res.success && res.user) {
+        const foundUser = res.user;
+        if (foundUser.is_archived || foundUser.isArchived) {
+          showToast(currentLang === 'tr' ? 'Hesap arşivlendi' : 'Аккаунт в архиве', 'error');
+          btn.disabled = false; btn.innerText = originalText; return;
+        }
+        const idx = users.findIndex(u => u.uid === foundUser.uid);
+        if (idx !== -1) users[idx] = foundUser;
+        else users.push(foundUser);
+
+        if (Array.isArray(foundUser.favorites)) {
+          favorites = [...new Set([...(Array.isArray(favorites) ? favorites : []), ...foundUser.favorites])];
+          try { localStorage.setItem('bs_favorites', JSON.stringify(favorites)); } catch (err) {}
+        }
+        saveUserSession(foundUser, remember);
+        closeModal('modal-auth');
+        showToast(currentLang === 'tr' ? `Tekrar hoş geldiniz, ${foundUser.kunya || foundUser.username}!` : `С возвращением, ${foundUser.kunya || foundUser.username}!`, 'success');
+      } else {
+        showToast(currentLang === 'tr' ? 'Geçersiz kullanıcı adı veya şifre' : 'Неверный логин или пароль', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(currentLang === 'tr' ? 'Giriş hatası' : 'Ошибка входа', 'error');
+    }
+    btn.disabled = false; btn.innerText = originalText;
   }
-  btn.disabled = false; btn.innerText = originalText;
-}
 }
 
 function logout() {
@@ -2110,7 +2135,7 @@ async function cleanUnusedStorageImagesAdmin() {
       return;
     }
 
-    showConfirmModal('Очистка хранилища', `Найдено ${filesToDelete.length} неиспользуемых фото. Удалить их из Supabase Storage?`, async () => {
+showConfirmModal('Очистка хранилища', `Найдено ${filesToDelete.length} неиспользуемых фото. Удалить их из Supabase Storage?`, async () => {
       const { error: delErr } = await supabaseClient.storage.from('listings').remove(filesToDelete);
       if (delErr) {
         showToast('Ошибка очистки хранилища', 'error');
@@ -2122,38 +2147,8 @@ async function cleanUnusedStorageImagesAdmin() {
     console.error(e);
     showToast('Ошибка при сканировании хранилища', 'error');
   }
-}let otpInterval = null;
-
-function startOtpTimer(seconds = 60) {
-  clearInterval(otpInterval);
-  const timerEl = byId('auth-otp-timer');
-  const resendBtn = byId('auth-resend-btn');
-  if (resendBtn) resendBtn.classList.add('hidden');
-  if (timerEl) { timerEl.classList.remove('hidden'); timerEl.innerText = '01:00'; }
-
-  let timeLeft = seconds;
-  otpInterval = setInterval(() => {
-    timeLeft--;
-    const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-    const s = (timeLeft % 60).toString().padStart(2, '0');
-    if (timerEl) timerEl.innerText = `${m}:${s}`;
-
-    if (timeLeft <= 0) {
-      clearInterval(otpInterval);
-      if (timerEl) timerEl.classList.add('hidden');
-      if (resendBtn) resendBtn.classList.remove('hidden');
-    }
-  }, 1000);
 }
 
-function resendWhatsAppCode() {
-  pendingRegVerification = null;
-  const submitBtn = byId('auth-submit-btn');
-  if (submitBtn) {
-    submitBtn.innerText = 'Получить код';
-    submitBtn.click();
-  }
-}
 // Автоматический оверлей при потере связи
 function updateNetworkStatus() {
   const offlineScreen = document.getElementById('offline-screen');

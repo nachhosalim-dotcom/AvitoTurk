@@ -152,9 +152,27 @@ function processSquareImageCrop(file, size = 300) {
 }
 
 function validateWhatsApp(number) {
-  if (!number) return { valid: false, error: 'Укажите номер WhatsApp' };
-  const cleaned = number.replace(/[^\d+]/g, '');
-  if (cleaned.length < 8) return { valid: false, error: 'Некорректный номер WhatsApp' };
+  if (!number || typeof number !== 'string') {
+    return { valid: false, error: typeof currentLang !== 'undefined' && currentLang === 'tr' ? 'WhatsApp numarası gereklidir' : 'Укажите номер WhatsApp' };
+  }
+  let cleaned = number.trim().replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
+  if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
+  
+  const digitsOnly = cleaned.replace(/\D/g, '');
+  // Проверка: код страны не может начинаться с 0, длина от 10 до 15 цифр E.164
+  const isValidPattern = /^\+[1-9]\d{9,14}$/.test(cleaned);
+  // Проверка на фальшивые/повторяющиеся номера (например, +90000000000, +11111111111)
+  const isDummy = /^(\d)\1+$/.test(digitsOnly);
+
+  if (!isValidPattern || isDummy || digitsOnly.length < 10 || digitsOnly.length > 15) {
+    return { 
+      valid: false, 
+      error: typeof currentLang !== 'undefined' && currentLang === 'tr' 
+        ? 'Geçerli bir WhatsApp numarası girin (örn: +905301234567)' 
+        : 'Введите реальный номер WhatsApp с кодом страны (напр. +905301234567)' 
+    };
+  }
   return { valid: true, number: cleaned };
 }
 

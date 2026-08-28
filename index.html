@@ -446,8 +446,8 @@ body { top: 0px !important; }
 <button type="button" aria-label="Закрыть" onclick="closeModal('modal-auth')" class="absolute top-3 left-3 app-back bg-field border b-ig" title="Назад"><i class="fa-solid fa-arrow-left"></i></button>
 <div class="text-center pt-2"><span class="ig-logo text-[34px] t1">Avito Türk</span></div>
 <div class="flex border-b b-ig text-sm">
-<button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 font-bold border-b-2" style="border-color:#0095f6;color:#0095f6">Вход</button>
-<button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 font-bold border-b-2 border-transparent t2">Регистрация</button>
+<button id="tab-login" type="button" onclick="switchAuthTab('login')" class="flex-1 py-2 font-bold border-b-2" style="border-color:#0095f6;color:#0095f6">Вход</button>
+<button id="tab-register" type="button" onclick="switchAuthTab('register')" class="flex-1 py-2 font-bold border-b-2 border-transparent t2">Регистрация</button>
 </div>
 <form onsubmit="handleAuthSubmit(event)" class="space-y-2.5 text-sm">
 <div id="login-fields" class="space-y-2.5">
@@ -455,32 +455,27 @@ body { top: 0px !important; }
   <input type="password" id="auth-password" placeholder="Пароль *" class="ig-input w-full px-3.5 py-2.5 text-xs">
 </div>
 <div id="reg-fields" class="hidden space-y-2.5">
-  <input type="text" id="auth-whatsapp" placeholder="Номер WhatsApp (+90…)*" class="ig-input w-full px-3.5 py-2.5 text-xs font-bold">
+  <input type="text" id="reg-username" placeholder="Логин *" class="ig-input w-full px-3.5 py-2.5 text-xs">
+  <input type="password" id="reg-password" placeholder="Пароль (мин. 6 символов) *" class="ig-input w-full px-3.5 py-2.5 text-xs">
+  <input type="password" id="reg-password-confirm" placeholder="Повторите пароль *" class="ig-input w-full px-3.5 py-2.5 text-xs">
+  <input type="text" id="reg-kunya" placeholder="Имя / Кунья" class="ig-input w-full px-3.5 py-2.5 text-xs">
+  <input type="text" id="reg-whatsapp" placeholder="WhatsApp номер * (+905...)" class="ig-input w-full px-3.5 py-2.5 text-xs font-bold">
   
   <div class="space-y-1">
-    <div class="text-[10px] t2 font-bold px-1 uppercase">Выберите ваш пол *</div>
+    <div id="reg-gender-label" class="text-[10px] t2 font-bold px-1 uppercase">Выберите ваш пол *</div>
     <div class="flex items-center justify-around p-2.5 rounded-xl bg-field border b-ig text-xs">
       <label class="flex items-center gap-2 cursor-pointer t1 font-semibold">
         <input type="radio" name="auth-gender" value="MALE" class="accent-[#0095f6] w-4 h-4 cursor-pointer">
-        <span>Мужчина</span>
+        <span id="label-gender-male">Мужчина</span>
       </label>
       <label class="flex items-center gap-2 cursor-pointer t1 font-semibold">
         <input type="radio" name="auth-gender" value="FEMALE" class="accent-[#ec4899] w-4 h-4 cursor-pointer">
-        <span class="text-pink-400">Женщина 🌸</span>
+        <span id="label-gender-female" class="text-pink-400">Женщина 🌸</span>
       </label>
     </div>
   </div>
-
-  <div id="auth-otp-block" class="hidden space-y-1.5 pt-1">
-    <input type="text" id="auth-otp-code" placeholder="Введите 6-значный код *" maxlength="6" class="ig-input w-full px-3.5 py-2.5 text-xs text-center font-bold tracking-widest text-emerald-400">
-    <div class="flex items-center justify-between text-[10px] px-1">
-      <span class="t2">Код отправлен в WhatsApp</span>
-      <span id="auth-otp-timer" class="font-mono font-bold text-amber-500">01:00</span>
-    </div>
-    <button type="button" id="auth-resend-btn" onclick="resendWhatsAppCode()" class="hidden w-full text-[11px] text-blue-400 font-bold hover:underline text-center pt-1">Отправить код повторно</button>
-  </div>
-  </div>
-<label class="flex items-center gap-2 text-xs t2 cursor-pointer"><input type="checkbox" id="auth-remember-me" checked class="accent-[#0095f6]"><span>Запомнить мой вход на этом устройстве</span></label>
+</div>
+<label class="flex items-center gap-2 text-xs t2 cursor-pointer"><input type="checkbox" id="auth-remember-me" checked class="accent-[#0095f6]"><span id="auth-remember-label">Запомнить мой вход на этом устройстве</span></label>
 <button type="submit" id="auth-submit-btn" class="ig-btn w-full py-2.5 text-sm">Войти</button>
 </form>
 </div>
