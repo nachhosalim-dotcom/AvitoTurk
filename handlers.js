@@ -1398,7 +1398,7 @@ async function handleAuthSubmit(e) {
       showToast(currentLang === 'tr' ? 'Şifre en az 6 karakter olmalıdır' : 'Пароль должен быть не менее 6 символов', 'warning');
       btn.disabled = false; return;
     }
-    if (passwordRaw !== passwordConfirm) {
+if (passwordRaw.trim() !== passwordConfirm.trim()) {
       showToast(currentLang === 'tr' ? 'Şifreler eşleşmiyor' : 'Пароли не совпадают', 'error');
       btn.disabled = false; return;
     }
