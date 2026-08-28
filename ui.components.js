@@ -490,17 +490,30 @@ function renderCategoryPills() {
   const c = byId('categories-container');
   if (!c) return;
   let pills = [{ id: 'all', icon: 'fa-border-all', name: t('Все') }];
-  if (currentUser && (currentUser.gender === 'FEMALE' || currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN')) pills.push({ id: 'women_only', icon: 'fa-venus', name: t('Для женщин 🌸') });
+  if (currentUser && (currentUser.gender === 'FEMALE' || currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN')) {
+    pills.push({ id: 'women_only', icon: 'fa-venus', name: t('Для женщин 🌸') });
+  }
   pills.push({ id: 'free', icon: 'fa-gift', name: t('Даром 🎁') });
   pills.push({ id: 'discounts', icon: 'fa-percent', name: t('Скидки') });
   pills.push({ id: 'combos', icon: 'fa-fire', name: t('Акции') });
   pills = pills.concat(categories.map(x => ({ id: x.id, icon: x.icon || 'fa-tag', name: t(x.name) })));
+  
   c.innerHTML = pills.map(p => {
-    const count = p.id === 'all' ? (ads.filter(a => a.status === 'ACTIVE' && (!a.isWomenOnly || (currentUser && (currentUser.gender === 'FEMALE' || (currentUser.role === 'SUPERUSER' && currentUser.showWomenAds) || currentUser.role !== 'ADMIN')))).length + combos.length) : getCategoryAdsCount(p.id);
+    const count = p.id === 'all' 
+      ? (ads.filter(a => a.status === 'ACTIVE' && (!a.isWomenOnly || (currentUser && (currentUser.gender === 'FEMALE' || (currentUser.role === 'SUPERUSER' && currentUser.showWomenAds) || currentUser.role !== 'ADMIN')))).length + combos.length) 
+      : getCategoryAdsCount(p.id);
     const active = selectedCategory === p.id;
-    return `<button onclick="handleCategoryClick('${p.id}')" class="flex flex-col items-center gap-1 shrink-0 w-[48px] group">
-<div class="w-8 h-8 rounded-full p-[2px] ${active ? 'story-ring shadow-md' : ''}" style="${active ? '' : 'background:#363636'}"><div class="w-full h-full rounded-full bg-card p-[1px]"><div class="w-full h-full rounded-full bg-field flex items-center justify-center t1 text-sm"><i class="fa-solid ${p.icon}"></i></div></div></div>
-<span class="text-[10px] ${active ? 'font-bold t1' : 't2'} truncate w-12 text-center">${p.name}</span><span class="text-[8px] t2 -mt-1">${count}</span></button>`;
+    return `<button onclick="handleCategoryClick('${p.id}')" class="flex flex-col items-center gap-1 shrink-0 min-w-[56px] max-w-[64px] group cursor-pointer">
+<div class="w-10 h-10 rounded-full p-[2px] shrink-0 ${active ? 'story-ring shadow-md' : ''}" style="${active ? '' : 'background:#363636'}">
+  <div class="w-full h-full rounded-full bg-card p-[1.5px]">
+    <div class="w-full h-full rounded-full bg-field flex items-center justify-center t1 text-xs">
+      <i class="fa-solid ${p.icon}"></i>
+    </div>
+  </div>
+</div>
+<span class="text-[10px] ${active ? 'font-bold t1' : 't2'} truncate w-full text-center leading-tight">${p.name}</span>
+<span class="text-[8px] t2 -mt-0.5">${count}</span>
+</button>`;
   }).join('');
 }
 

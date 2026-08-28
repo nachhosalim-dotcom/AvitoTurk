@@ -8,10 +8,10 @@
 <title>Avito Türk</title>
 <meta name="description" content="Avito Türk — Türkiye'nin lider seri ilan platformu. Vasıta, emlak, elektronik ve ikinci el ürünler.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E...%3C/svg%3E">
-<link rel="preconnect" href="https://wykjwznojmzlbrujikft.supabase.co" crossorigin>
-<link rel="dns-prefetch" href="https://wykjwznojmzlbrujikft.supabase.co">
+<link rel="preconnect" href="https://mmespmwztkjxhwmsgjn.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://mmespmwztkjxhwmsgjn.supabase.co">
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
@@ -92,8 +92,26 @@ cursor:default;
 .ig-input{background:var(--ig-field);border:1px solid transparent;color:var(--ig-text);border-radius:8px;outline:none;transition:border .15s}
 .ig-input:focus{border-color:var(--ig-text2)}
 .search-wrapper .ig-input::placeholder{color:transparent}
-#modal-auth .ig-input::placeholder{color:var(--ig-text2);opacity:.8}
-#modal-auth .ig-input:focus::placeholder{color:transparent;opacity:0}
+#modal-auth .ig-input{color:var(--ig-text) !important;background:var(--ig-field) !important;}
+#modal-auth .ig-input {
+  background-color: var(--ig-field) !important;
+  color: var(--ig-text) !important;
+}
+#modal-auth .ig-input:-webkit-autofill,
+#modal-auth .ig-input:-webkit-autofill:hover, 
+#modal-auth .ig-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ig-text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--ig-field) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+#modal-auth .ig-input::placeholder {
+  color: var(--ig-text2) !important;
+  opacity: 0.8;
+}
+#modal-auth .ig-input:focus::placeholder {
+  color: transparent !important;
+  opacity: 0;
+}
 select.ig-input option{background:var(--ig-field);color:var(--ig-text)}
 .ig-btn{background:#0095f6;color:#fff;border-radius:8px;font-weight:600;transition:background .15s}
 .ig-btn:hover{background:#1877f2}
@@ -963,12 +981,12 @@ body { top: 0px !important; }
 </div>
 
 <script>
-if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
-  navigator.serviceWorker.register('sw.js').then(function(registration) {
-    console.log('ServiceWorker registration successful');
-  }).catch(function(err) {
-    console.warn('ServiceWorker registration failed: ', err);
-  });
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:' && location.hostname !== 'localhost') {
+  fetch('sw.js', { method: 'HEAD' }).then(res => {
+    if (res.ok) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  }).catch(() => {});
 }
 </script>
 </body>

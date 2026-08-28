@@ -348,18 +348,14 @@ function addBalance(uid, amount) {
 async function initSupabaseSync() {
   if (!supabaseClient) return;
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const fetchSafe = (queryPromise) => Promise.resolve(queryPromise).catch(err => ({ error: err, data: null }));
+
     const [usersRes, adsRes, combosRes, catsRes] = await Promise.all([
-      supabaseClient.from('users').select('*').abortSignal(controller.signal),
-      supabaseClient.from('ads').select('*').order('created_at', { ascending: false }).limit(50).abortSignal(controller.signal),
-      supabaseClient.from('combos').select('*').abortSignal(controller.signal),
-      supabaseClient.from('categories').select('*').abortSignal(controller.signal)
-    ]).catch((err) => {
-      console.warn('Background sync aborted or failed:', err?.message || err);
-      return [null, null, null, null];
-    });
-    clearTimeout(timeoutId);
+      fetchSafe(supabaseClient.from('users').select('*')),
+      fetchSafe(supabaseClient.from('ads').select('*').order('created_at', { ascending: false }).limit(50)),
+      fetchSafe(supabaseClient.from('combos').select('*')),
+      fetchSafe(supabaseClient.from('categories').select('*'))
+    ]);
     let dataUpdated = false;
     if (usersRes && usersRes.data && usersRes.data.length > 0) {
       const allParsedUsers = usersRes.data.map(u => ({
