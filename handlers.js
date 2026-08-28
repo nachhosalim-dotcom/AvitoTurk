@@ -336,30 +336,33 @@ async function handleMultiImageCompressUpload(e, mode = 'create') {
       let uploadedUrl = null;
 
       if (supabaseClient) {
-        const compressedFile = await compressSingleImageFile(f, 1000, 1000, 0.8);
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
+        try {
+          const compressedFile = await compressSingleImageFile(f, 1000, 1000, 0.8);
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
 
-        const { data: uploadData, error: sbErr } = await supabaseClient.storage
-          .from('listings')
-          .upload(fileName, compressedFile, {
-            contentType: 'image/jpeg',
-            cacheControl: '31536000',
-            upsert: true
-          });
-
-        if (!sbErr && uploadData) {
-          const { data: pubData } = supabaseClient.storage
+          const { data: uploadData, error: sbErr } = await supabaseClient.storage
             .from('listings')
-            .getPublicUrl(fileName);
-          if (pubData && pubData.publicUrl) {
-            uploadedUrl = pubData.publicUrl;
+            .upload(fileName, compressedFile, {
+              contentType: 'image/jpeg',
+              cacheControl: '31536000',
+              upsert: true
+            });
+
+          if (!sbErr && uploadData) {
+            const { data: pubData } = supabaseClient.storage
+              .from('listings')
+              .getPublicUrl(fileName);
+            if (pubData && pubData.publicUrl) {
+              uploadedUrl = pubData.publicUrl;
+            }
+          } else if (sbErr) {
+            console.warn('Supabase storage upload error:', sbErr.message || sbErr);
           }
-        } else if (sbErr) {
-          console.warn('Storage upload policy/network error:', sbErr);
+        } catch (netErr) {
+          console.warn('Network upload fallback to base64:', netErr);
         }
       }
 
-      // Fallback на Base64 только при полном отсутствии соединения
       if (!uploadedUrl) {
         uploadedUrl = await new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -375,7 +378,7 @@ async function handleMultiImageCompressUpload(e, mode = 'create') {
       }
     } catch (err) {
       console.error('Photo processing error:', err);
-      showToast('Ошибка загрузки фото', 'error');
+      showToast('Ошибка при обработке фото', 'error');
     }
   }
   e.target.value = '';
@@ -1398,7 +1401,7 @@ async function handleAuthSubmit(e) {
       showToast(currentLang === 'tr' ? 'Şifre en az 6 karakter olmalıdır' : 'Пароль должен быть не менее 6 символов', 'warning');
       btn.disabled = false; return;
     }
-if (passwordRaw.trim() !== passwordConfirm.trim()) {
+    if (passwordRaw.trim() !== passwordConfirm.trim()) {
       showToast(currentLang === 'tr' ? 'Şifreler eşleşmiyor' : 'Пароли не совпадают', 'error');
       btn.disabled = false; return;
     }
@@ -1417,20 +1420,13 @@ if (passwordRaw.trim() !== passwordConfirm.trim()) {
       btn.disabled = false; return;
     }
 
-    if (!supabaseClient) {
-      showToast('Нет соединения с базой данных', 'error');
-      btn.disabled = false; return;
-    }
-
     btn.innerText = currentLang === 'tr' ? 'Kaydediliyor...' : 'Регистрация...';
     const passHash = await sha256(passwordRaw);
     const uid = 'u_' + Date.now();
-
-let regSuccessUser = null;
+    let regSuccessUser = null;
 
     if (supabaseClient) {
       try {
-        // 1. Попытка создания через RPC функцию
         const { data: regRes, error: regErr } = await supabaseClient.rpc('register_new_user', {
           p_uid: uid,
           p_username: username,
@@ -1442,13 +1438,18 @@ let regSuccessUser = null;
         });
 
         if (regRes && regRes.success && regRes.user) {
-          regSuccessUser = regRes.user;
+          regSuccessUser = {
+            ...regRes.user,
+            passwordHash: regRes.user.password_hash,
+            avitocashBalance: Number(regRes.user.avitocash_balance || 0),
+            trialBalance: Number(regRes.user.trial_balance || 10),
+            favorites: []
+          };
         } else if (regRes && !regRes.success && regRes.error) {
           showToast(regRes.error, 'error');
           btn.disabled = false; btn.innerText = originalText; return;
         }
 
-        // 2. Прямая вставка в таблицу, если функция RPC не вернула результат
         if (!regSuccessUser) {
           const newDbUser = {
             uid: uid,
@@ -1464,10 +1465,16 @@ let regSuccessUser = null;
             favorites: []
           };
 
-          const { error: insErr } = await supabaseClient.from('users').insert(newDbUser);
-          if (!insErr) {
-            regSuccessUser = newDbUser;
-          } else if (insErr.message && (insErr.message.includes('duplicate') || insErr.message.includes('unique'))) {
+          const { data: insData, error: insErr } = await supabaseClient.from('users').insert(newDbUser).select().single();
+          if (!insErr && insData) {
+            regSuccessUser = {
+              ...insData,
+              passwordHash: insData.password_hash,
+              avitocashBalance: Number(insData.avitocash_balance || 0),
+              trialBalance: Number(insData.trial_balance || 10),
+              favorites: []
+            };
+          } else if (insErr && (insErr.message.includes('duplicate') || insErr.message.includes('unique'))) {
             showToast(currentLang === 'tr' ? 'Bu kullanıcı adı zaten kayıtlı' : 'Такой логин уже занят', 'error');
             btn.disabled = false; btn.innerText = originalText; return;
           }
@@ -1476,8 +1483,7 @@ let regSuccessUser = null;
         console.warn('Direct registration cloud sync warning:', cloudErr);
       }
     }
-	
-    // Если сервер временно заблокирован провайдером/Edge, создаем рабочий локальный профиль
+
     if (!regSuccessUser) {
       regSuccessUser = {
         uid: uid,
@@ -1501,7 +1507,6 @@ let regSuccessUser = null;
     saveUserSession(regSuccessUser, remember);
     closeModal('modal-auth');
     showToast(currentLang === 'tr' ? `Kayıt başarılı! Hoş geldiniz, ${regSuccessUser.kunya || regSuccessUser.username}!` : `Регистрация завершена! Добро пожаловать, ${regSuccessUser.kunya || regSuccessUser.username}!`, 'success');
-    
     btn.disabled = false; btn.innerText = originalText;
 
   } else {
@@ -1514,24 +1519,35 @@ let regSuccessUser = null;
       btn.disabled = false; return;
     }
 
-    if (!supabaseClient) {
-      showToast('Нет соединения с базой данных', 'error');
-      btn.disabled = false; return;
-    }
-
     btn.innerText = currentLang === 'tr' ? 'Giriş yapılıyor...' : 'Вход...';
     const password = await sha256(rawPassword);
 
     try {
-      const { data: res, error } = await supabaseClient.rpc('verify_user_login', {
-        p_username: loginIdentifier,
-        p_password_hash: password
-      });
+      let foundUser = null;
+      if (supabaseClient) {
+        const { data: res, error } = await supabaseClient.rpc('verify_user_login', {
+          p_username: loginIdentifier,
+          p_password_hash: password
+        });
+        if (res && res.success && res.user) {
+          foundUser = {
+            ...res.user,
+            passwordHash: res.user.password_hash,
+            avitocashBalance: Number(res.user.avitocash_balance || 0),
+            trialBalance: Number(res.user.trial_balance || 0)
+          };
+        }
+      }
 
-      if (error) throw error;
+      if (!foundUser) {
+        foundUser = users.find(u => 
+          ((u.username && u.username.toLowerCase() === loginIdentifier.toLowerCase()) || 
+           (u.whatsapp && u.whatsapp.replace(/\D/g, '') === loginIdentifier.replace(/\D/g, ''))) &&
+          u.passwordHash === password
+        );
+      }
 
-      if (res && res.success && res.user) {
-        const foundUser = res.user;
+      if (foundUser) {
         if (foundUser.is_archived || foundUser.isArchived) {
           showToast(currentLang === 'tr' ? 'Hesap arşivlendi' : 'Аккаунт в архиве', 'error');
           btn.disabled = false; btn.innerText = originalText; return;
