@@ -1426,31 +1426,57 @@ async function handleAuthSubmit(e) {
     const passHash = await sha256(passwordRaw);
     const uid = 'u_' + Date.now();
 
-    let regSuccessUser = null;
-    try {
-      const { data: regRes, error: regErr } = await supabaseClient.rpc('register_new_user', {
-        p_uid: uid,
-        p_username: username,
-        p_password_hash: passHash,
-        p_kunya: kunya || username,
-        p_gender: genderRadio.value,
-        p_whatsapp: waCheck.number,
-        p_avatar: null
-      });
+let regSuccessUser = null;
 
-      if (regRes && regRes.success && regRes.user) {
-        regSuccessUser = regRes.user;
-      } else if (regErr || (regRes && !regRes.success)) {
-        const errMsg = regRes?.error || regErr?.message || '';
-        if (errMsg.includes('duplicate') || errMsg.includes('unique') || errMsg.includes('already exists')) {
-          showToast(currentLang === 'tr' ? 'Bu kullanıcı adı veya WhatsApp zaten kayıtlı' : 'Логин или номер WhatsApp уже зарегистрированы', 'error');
+    if (supabaseClient) {
+      try {
+        // 1. Попытка создания через RPC функцию
+        const { data: regRes, error: regErr } = await supabaseClient.rpc('register_new_user', {
+          p_uid: uid,
+          p_username: username,
+          p_password_hash: passHash,
+          p_kunya: kunya || username,
+          p_gender: genderRadio.value,
+          p_whatsapp: waCheck.number,
+          p_avatar: null
+        });
+
+        if (regRes && regRes.success && regRes.user) {
+          regSuccessUser = regRes.user;
+        } else if (regRes && !regRes.success && regRes.error) {
+          showToast(regRes.error, 'error');
           btn.disabled = false; btn.innerText = originalText; return;
         }
-      }
-    } catch (netErr) {
-      console.warn('Supabase cloud unreachable, using fallback profile:', netErr);
-    }
 
+        // 2. Прямая вставка в таблицу, если функция RPC не вернула результат
+        if (!regSuccessUser) {
+          const newDbUser = {
+            uid: uid,
+            username: username,
+            password_hash: passHash,
+            kunya: kunya || username,
+            gender: genderRadio.value,
+            whatsapp: waCheck.number,
+            avatar: null,
+            role: 'USER',
+            avitocash_balance: 0,
+            trial_balance: 10,
+            favorites: []
+          };
+
+          const { error: insErr } = await supabaseClient.from('users').insert(newDbUser);
+          if (!insErr) {
+            regSuccessUser = newDbUser;
+          } else if (insErr.message && (insErr.message.includes('duplicate') || insErr.message.includes('unique'))) {
+            showToast(currentLang === 'tr' ? 'Bu kullanıcı adı zaten kayıtlı' : 'Такой логин уже занят', 'error');
+            btn.disabled = false; btn.innerText = originalText; return;
+          }
+        }
+      } catch (cloudErr) {
+        console.warn('Direct registration cloud sync warning:', cloudErr);
+      }
+    }
+	
     // Если сервер временно заблокирован провайдером/Edge, создаем рабочий локальный профиль
     if (!regSuccessUser) {
       regSuccessUser = {
