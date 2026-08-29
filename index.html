@@ -981,12 +981,8 @@ body { top: 0px !important; }
 </div>
 
 <script>
-if ('serviceWorker' in navigator && window.location.protocol !== 'file:' && location.hostname !== 'localhost') {
-  fetch('sw.js', { method: 'HEAD' }).then(res => {
-    if (res.ok) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    }
-  }).catch(() => {});
+if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 </script>
 </body>
