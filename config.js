@@ -1,9 +1,4 @@
 /* ================= STATE & CONFIGURATION ================= */
-let currentUser = null;
-let pendingRegVerification = null;
-let supabaseClient = null;
-const SUPABASE_URL = "https://mmespmwztkxjhwmsgjn.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tZXNwbXd6dHhranhod21zZ2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MzY5MzgsImV4cCI6MjEwMzUxMjkzOH0.wz8lllymLmmleherQwR2oqcYQbtXz8P_VqUU8xVhxE4";
 
 const _savedLayout = localStorage.getItem('bs_feed_layout') || 'instagram';
 const _isDesktopInit = typeof window !== 'undefined' && window.innerWidth >= 1024;

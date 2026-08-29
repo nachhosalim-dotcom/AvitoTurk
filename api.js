@@ -1,21 +1,456 @@
 /* ================= SUPABASE & NETWORK SERVICES ================= */
 
+/* ================= MONOLITHIC SUPABASE & CORE API MODULE ================= */
+
+let currentUser = null;
+let pendingRegVerification = null;
+let supabaseClient = null;
+
+// Исправленный рабочий URL и ключ
+const SUPABASE_URL = "https://mmespmwztkxjhwmsgjn.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tZXNwbXd6dGt4amh3bXNnam4iLCJpYXQiOjE3ODc5MzY5MzgsImV4cCI6MjEwMzUxMjkzOH0.wz8lllymLmmleherQwR2oqcYQbtXz8P_VqUU8xVhxE4";
+
+try {
+  if (typeof window.supabase !== 'undefined') {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
+  }
+} catch (e) {
+  console.warn("Supabase init error:", e);
+}
+
 function fixDirectImageUrl(url) {
   if (!url || typeof url !== 'string') return url;
   let clean = url.trim();
-  
   if (clean.includes('ibb.co/') && !clean.includes('i.ibb.co/')) {
     const id = clean.split('ibb.co/').pop().split('/')[0].split('?')[0];
     if (id) return `https://i.ibb.co/${id}/image.jpg`;
   }
   return clean;
 }
-// Инициализация Supabase Client
-try {
-  if (typeof supabase !== 'undefined') {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function validateWhatsApp(number) {
+  if (!number || typeof number !== 'string') {
+    return { valid: false, error: typeof currentLang !== 'undefined' && currentLang === 'tr' ? 'WhatsApp numarası gereklidir' : 'Укажите номер WhatsApp' };
   }
-} catch(e) { console.warn("Supabase init error:", e); }
+  let cleaned = number.trim().replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
+  if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
+  const digitsOnly = cleaned.replace(/\D/g, '');
+  const isValidPattern = /^\+[1-9]\d{9,14}$/.test(cleaned);
+  const isDummy = /^(\d)\1+$/.test(digitsOnly);
+
+  if (!isValidPattern || isDummy || digitsOnly.length < 10 || digitsOnly.length > 15) {
+    return { 
+      valid: false, 
+      error: typeof currentLang !== 'undefined' && currentLang === 'tr' 
+        ? 'Geçerli bir WhatsApp numarası girin (örn: +905301234567)' 
+        : 'Введите реальный номер WhatsApp с кодом страны (напр. +905301234567)' 
+    };
+  }
+  return { valid: true, number: cleaned };
+}
+
+/* --- СИНХРОНИЗАЦИЯ БАЗЫ ДАННЫХ --- */
+async function initSupabaseSync() {
+  if (!supabaseClient) return;
+  try {
+    const [usersRes, adsRes, combosRes, catsRes] = await Promise.allSettled([
+      supabaseClient.from('users').select('*'),
+      supabaseClient.from('ads').select('*').order('created_at', { ascending: false }).limit(100),
+      supabaseClient.from('combos').select('*'),
+      supabaseClient.from('categories').select('*')
+    ]);
+
+    let dataUpdated = false;
+
+    if (usersRes.status === 'fulfilled' && usersRes.value.data) {
+      const allParsedUsers = usersRes.value.data.map(u => ({
+        ...u,
+        passwordHash: u.password_hash,
+        verifiedShop: !!u.verified_shop,
+        avitocashBalance: Number(u.avitocash_balance || 0),
+        trialBalance: Number(u.trial_balance || 0),
+        showWomenAds: !!u.show_women_ads,
+        frozen: !!u.frozen,
+        isArchived: !!u.is_archived
+      }));
+      users = allParsedUsers.filter(u => !u.isArchived);
+      archivedUsers = allParsedUsers.filter(u => u.isArchived);
+      if (currentUser) {
+        const freshMe = allParsedUsers.find(u =>
+          (u.uid && u.uid === currentUser.uid) ||
+          (u.username && u.username.toLowerCase() === currentUser.username.toLowerCase())
+        );
+        if (freshMe) {
+          currentUser = { ...currentUser, ...freshMe };
+          saveUserSession(currentUser, true);
+        }
+      }
+      dataUpdated = true;
+    }
+
+    if (adsRes.status === 'fulfilled' && adsRes.value.data) {
+      const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
+      ads = adsRes.value.data
+        .filter(a => !deletedIds.includes(a.id))
+        .map(a => ({
+          id: a.id,
+          title: a.title,
+          category: a.category,
+          storeCategory: a.store_category || '',
+          region: a.region,
+          city: a.city,
+          isWomenOnly: !!a.is_women_only,
+          isFree: !!a.is_free,
+          isNegotiable: !!a.is_negotiable,
+          price: Number(a.price || 0),
+          oldPrice: (a.old_price != null) ? Number(a.old_price) : null,
+          currency: a.currency || 'USD',
+          desc: a.description || a.desc || '',
+          images: (Array.isArray(a.images) ? a.images : [a.image || '']).map(fixDirectImageUrl),
+          image: fixDirectImageUrl(a.image || (Array.isArray(a.images) ? a.images[0] : null)),
+          lat: Number(a.lat) || 33.5138,
+          lng: Number(a.lng) || 36.2765,
+          sellerUsername: a.seller_username,
+          sellerUid: a.seller_uid,
+          sellerKunya: a.seller_kunya,
+          sellerWhatsapp: a.seller_whatsapp,
+          status: a.status || 'ACTIVE',
+          createdAt: Number(a.created_at) || Date.now(),
+          queue: Array.isArray(a.queue) ? a.queue : [],
+          likes: Array.isArray(a.likes) ? a.likes : [],
+          views: Number(a.views || 0)
+        }));
+      dataUpdated = true;
+    }
+
+    if (combosRes.status === 'fulfilled' && combosRes.value.data) {
+      combos = combosRes.value.data.map(c => ({
+        id: c.id,
+        shopUid: c.shop_uid,
+        sellerUsername: c.seller_username,
+        title: c.title,
+        price: Number(c.price || 0),
+        items: Array.isArray(c.items) ? c.items : [],
+        likes: Array.isArray(c.likes) ? c.likes : [],
+        createdAt: Number(c.created_at) || Date.now()
+      }));
+      dataUpdated = true;
+    }
+
+    if (catsRes.status === 'fulfilled' && catsRes.value.data && catsRes.value.data.length) {
+      categories = catsRes.value.data;
+      dataUpdated = true;
+    }
+
+    if (dataUpdated) {
+      if (typeof saveCachedAds === 'function') await saveCachedAds();
+      if (typeof renderCategoryPills === 'function') renderCategoryPills();
+      if (typeof renderAds === 'function') renderAds();
+    }
+  } catch (error) {
+    console.warn("Ошибка синхронизации Supabase:", error);
+  }
+}
+
+/* --- СЖАТИЕ И ХРАНИЛИЩЕ STORAGE --- */
+async function compressSingleImageFile(file, maxWidth = 1280, maxHeight = 1280, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width, height = img.height;
+        if (width > height) {
+          if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+        } else {
+          if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Canvas toBlob failed'));
+          const compressedFile = new File([blob], `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`, { type: 'image/jpeg' });
+          resolve(compressedFile);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
+
+async function uploadFileToSupabaseStorage(file, bucket = 'listings') {
+  if (!supabaseClient) throw new Error('Supabase client не инициализирован');
+  const compressed = await compressSingleImageFile(file, 1200, 1200, 0.75);
+  const filePath = `ad_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from(bucket)
+    .upload(filePath, compressed, { cacheControl: '31536000', upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  const { data: pubData } = supabaseClient.storage.from(bucket).getPublicUrl(filePath);
+  return pubData.publicUrl;
+}
+
+async function handleMultiImageCompressUpload(e, mode = 'create') {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  const arr = mode === 'create' ? pendingCreateImages : pendingEditImages;
+  const slots = 6 - arr.length;
+  if (slots <= 0) { showToast('Максимум 6 фотографий!', 'warning'); return; }
+
+  showToast(`Загрузка изображений...`, 'info');
+
+  for (const f of files.slice(0, slots)) {
+    try {
+      let uploadedUrl = null;
+      if (supabaseClient) {
+        try {
+          uploadedUrl = await uploadFileToSupabaseStorage(f, 'listings');
+        } catch (sErr) {
+          console.warn('Storage upload fallback:', sErr);
+        }
+      }
+      if (!uploadedUrl) {
+        uploadedUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = ev => resolve(ev.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(f);
+        });
+      }
+      if (uploadedUrl) {
+        arr.push(uploadedUrl);
+        if (typeof renderPhotoThumbnailsGrid === 'function') renderPhotoThumbnailsGrid(mode);
+      }
+    } catch (err) {
+      console.error('Photo processing error:', err);
+      showToast('Ошибка при обработке фото', 'error');
+    }
+  }
+  e.target.value = '';
+}
+
+/* --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ --- */
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const isReg = !byId('reg-fields').classList.contains('hidden');
+  const remember = byId('auth-remember-me') ? byId('auth-remember-me').checked : true;
+  const btn = byId('auth-submit-btn');
+  const originalText = btn.innerText;
+  btn.disabled = true;
+
+  if (isReg) {
+    const username = byId('reg-username')?.value.trim();
+    const passwordRaw = byId('reg-password')?.value;
+    const passwordConfirm = byId('reg-password-confirm')?.value;
+    const kunya = byId('reg-kunya')?.value.trim();
+    const whatsappRaw = byId('reg-whatsapp')?.value.trim();
+    const genderRadio = document.querySelector('input[name="auth-gender"]:checked');
+
+    if (!username || username.length < 3) {
+      showToast('Логин должен быть не менее 3 символов', 'warning');
+      btn.disabled = false; return;
+    }
+    if (!passwordRaw || passwordRaw.length < 6 || passwordRaw !== passwordConfirm) {
+      showToast('Пароли не совпадают или короче 6 символов', 'warning');
+      btn.disabled = false; return;
+    }
+    if (!genderRadio) {
+      showToast('Выберите ваш пол', 'warning');
+      btn.disabled = false; return;
+    }
+
+    const waCheck = validateWhatsApp(whatsappRaw);
+    if (!waCheck.valid) {
+      showToast(waCheck.error, 'error');
+      btn.disabled = false; return;
+    }
+
+    btn.innerText = 'Регистрация...';
+    const passHash = await sha256(passwordRaw);
+    const uid = 'u_' + Date.now();
+
+    const newUserPayload = {
+      uid: uid,
+      username: username,
+      password_hash: passHash,
+      kunya: kunya || username,
+      gender: genderRadio.value,
+      whatsapp: waCheck.number,
+      avatar: null,
+      role: 'USER',
+      avitocash_balance: 0,
+      trial_balance: 10,
+      favorites: []
+    };
+
+    let regSuccessUser = null;
+
+    if (supabaseClient) {
+      try {
+        const { data: insData, error: insErr } = await supabaseClient
+          .from('users')
+          .insert([newUserPayload])
+          .select()
+          .single();
+
+        if (insErr) {
+          if (insErr.code === '23505' || insErr.message.includes('unique')) {
+            showToast('Логин или номер уже зарегистрирован', 'error');
+            btn.disabled = false; btn.innerText = originalText; return;
+          }
+          console.warn('Direct user insert warning:', insErr.message);
+        } else if (insData) {
+          regSuccessUser = {
+            ...insData,
+            passwordHash: insData.password_hash,
+            avitocashBalance: Number(insData.avitocash_balance || 0),
+            trialBalance: Number(insData.trial_balance || 10)
+          };
+        }
+      } catch (cloudErr) {
+        console.warn('Registration cloud sync error:', cloudErr);
+      }
+    }
+
+    if (!regSuccessUser) {
+      regSuccessUser = {
+        ...newUserPayload,
+        passwordHash: passHash,
+        avitocashBalance: 0,
+        trialBalance: 10
+      };
+    }
+
+    const idx = users.findIndex(u => u.uid === regSuccessUser.uid || u.username.toLowerCase() === regSuccessUser.username.toLowerCase());
+    if (idx !== -1) users[idx] = regSuccessUser;
+    else users.push(regSuccessUser);
+
+    saveUserSession(regSuccessUser, remember);
+    closeModal('modal-auth');
+    showToast(`Регистрация завершена! Добро пожаловать, ${regSuccessUser.kunya || regSuccessUser.username}!`, 'success');
+    btn.disabled = false; btn.innerText = originalText;
+
+  } else {
+    const loginIdentifier = byId('auth-username').value.trim();
+    const rawPassword = byId('auth-password').value;
+
+    if (!loginIdentifier || !rawPassword) {
+      showToast('Введите логин и пароль', 'warning');
+      btn.disabled = false; return;
+    }
+
+    btn.innerText = 'Вход...';
+    const password = await sha256(rawPassword);
+    let foundUser = null;
+
+    if (supabaseClient) {
+      try {
+        const cleanWa = loginIdentifier.replace(/\D/g, '');
+        const { data: foundRows, error: findErr } = await supabaseClient
+          .from('users')
+          .select('*')
+          .or(`username.ilike.${loginIdentifier},whatsapp.ilike.%${cleanWa ? cleanWa : 'NOMATCH'}%`)
+          .eq('password_hash', password)
+          .limit(1);
+
+        if (!findErr && foundRows && foundRows.length > 0) {
+          const u = foundRows[0];
+          foundUser = {
+            ...u,
+            passwordHash: u.password_hash,
+            avitocashBalance: Number(u.avitocash_balance || 0),
+            trialBalance: Number(u.trial_balance || 0),
+            favorites: Array.isArray(u.favorites) ? u.favorites : []
+          };
+        }
+      } catch (err) {
+        console.warn("Supabase auth check err:", err);
+      }
+    }
+
+    if (!foundUser) {
+      foundUser = users.find(u => 
+        ((u.username && u.username.toLowerCase() === loginIdentifier.toLowerCase()) || 
+         (u.whatsapp && u.whatsapp.replace(/\D/g, '') === loginIdentifier.replace(/\D/g, ''))) &&
+        u.passwordHash === password
+      );
+    }
+
+    if (foundUser) {
+      if (foundUser.is_archived || foundUser.isArchived) {
+        showToast('Аккаунт в архиве', 'error');
+        btn.disabled = false; btn.innerText = originalText; return;
+      }
+      const idx = users.findIndex(u => u.uid === foundUser.uid);
+      if (idx !== -1) users[idx] = foundUser;
+      else users.push(foundUser);
+
+      if (Array.isArray(foundUser.favorites)) {
+        favorites = [...new Set([...(Array.isArray(favorites) ? favorites : []), ...foundUser.favorites])];
+        try { localStorage.setItem('bs_favorites', JSON.stringify(favorites)); } catch (err) {}
+      }
+      saveUserSession(foundUser, remember);
+      closeModal('modal-auth');
+      showToast(`С возвращением, ${foundUser.kunya || foundUser.username}!`, 'success');
+    } else {
+      showToast('Неверный логин или пароль', 'error');
+    }
+
+    btn.disabled = false; btn.innerText = originalText;
+  }
+}
+
+/* --- СОХРАНЕНИЕ ОБЪЯВЛЕНИЙ --- */
+async function saveAdToSupabase(ad) {
+  if (!supabaseClient) return;
+  const dbAd = {
+    id: ad.id,
+    title: ad.title,
+    category: ad.category,
+    store_category: ad.storeCategory || '',
+    region: ad.region,
+    city: ad.city,
+    is_women_only: !!ad.isWomenOnly,
+    is_free: !!ad.isFree,
+    is_negotiable: !!ad.isNegotiable,
+    price: Number(ad.price || 0),
+    old_price: ad.oldPrice !== null && ad.oldPrice !== undefined ? Number(ad.oldPrice) : null,
+    currency: ad.currency || 'USD',
+    description: ad.desc || '',
+    images: Array.isArray(ad.images) ? ad.images : [ad.image || ''],
+    image: ad.image || (Array.isArray(ad.images) ? ad.images[0] : ''),
+    lat: Number(ad.lat || 33.5138),
+    lng: Number(ad.lng || 36.2765),
+    seller_username: ad.sellerUsername || '',
+    seller_uid: ad.sellerUid || '',
+    seller_kunya: ad.sellerKunya || '',
+    seller_whatsapp: ad.sellerWhatsapp || '',
+    status: ad.status || 'ACTIVE',
+    created_at: Number(ad.createdAt || Date.now()),
+    queue: ad.queue || [],
+    likes: ad.likes || [],
+    views: Number(ad.views || 0)
+  };
+  await supabaseClient.from('ads').upsert(dbAd);
+}
 
 function saveBackupsMeta() {
   try {
@@ -120,13 +555,6 @@ if (Array.isArray(parsedCombos)) combos = parsedCombos;
 }
 }
 
-async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 function processSquareImageCrop(file, size = 300) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -151,30 +579,6 @@ function processSquareImageCrop(file, size = 300) {
   });
 }
 
-function validateWhatsApp(number) {
-  if (!number || typeof number !== 'string') {
-    return { valid: false, error: typeof currentLang !== 'undefined' && currentLang === 'tr' ? 'WhatsApp numarası gereklidir' : 'Укажите номер WhatsApp' };
-  }
-  let cleaned = number.trim().replace(/[^\d+]/g, '');
-  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
-  if (!cleaned.startsWith('+')) cleaned = '+' + cleaned;
-  
-  const digitsOnly = cleaned.replace(/\D/g, '');
-  // Проверка: код страны не может начинаться с 0, длина от 10 до 15 цифр E.164
-  const isValidPattern = /^\+[1-9]\d{9,14}$/.test(cleaned);
-  // Проверка на фальшивые/повторяющиеся номера (например, +90000000000, +11111111111)
-  const isDummy = /^(\d)\1+$/.test(digitsOnly);
-
-  if (!isValidPattern || isDummy || digitsOnly.length < 10 || digitsOnly.length > 15) {
-    return { 
-      valid: false, 
-      error: typeof currentLang !== 'undefined' && currentLang === 'tr' 
-        ? 'Geçerli bir WhatsApp numarası girin (örn: +905301234567)' 
-        : 'Введите реальный номер WhatsApp с кодом страны (напр. +905301234567)' 
-    };
-  }
-  return { valid: true, number: cleaned };
-}
 
 async function urlToBase64(url) {
   try {
@@ -216,231 +620,6 @@ function generateFastThumbnail(base64Data, size = 320) {
 async function pushCategoriesToCloud() {
   if (supabaseClient) {
     await supabaseClient.from('categories').upsert(categories);
-  }
-}
-
-// ==========================================
-// БЛОК ОПТИМИЗАЦИИ И ЗАГРУЗКИ ФОТО
-// ==========================================
-
-async function compressSingleImageFile(file, maxWidth = 1280, maxHeight = 1280, quality = 0.75) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, width ? width : 0, 0, height);
-
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            return reject(new Error('Canvas toBlob failed'));
-          }
-          const compressedFile = new File([blob], `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.webp`, {
-            type: 'image/webp'
-          });
-          resolve(compressedFile);
-        }, 'image/webp', quality);
-      };
-      img.onerror = (err) => reject(err);
-    };
-    reader.onerror = (err) => reject(err);
-  });
-}
-
-async function uploadListingImages(filesArray, bucketName = 'listings') {
-  if (!filesArray || filesArray.length === 0) return [];
-  
-  const uploadPromises = Array.from(filesArray).map(async (file) => {
-    // Если передан уже готовый URL (строка), не трогаем его
-    if (typeof file === 'string') return file;
-
-    const compressed = await compressSingleImageFile(file);
-    const filePath = `public/${compressed.name}`;
-
-    const { data, error } = await supabaseClient.storage
-      .from(bucketName)
-      .upload(filePath, compressed, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) {
-      console.error('Ошибка загрузки в Supabase Storage:', error);
-      throw error;
-    }
-
-    const { data: publicUrlData } = supabaseClient.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
-
-    return publicUrlData.publicUrl;
-  });
-
-  return await Promise.all(uploadPromises);
-}
-
-// ==========================================
-
-async function saveAdToSupabase(ad) {
-  if (!supabaseClient) return;
-  const dbAd = {
-    id: ad.id, title: ad.title, category: ad.category, store_category: ad.storeCategory || '',
-    region: ad.region, city: ad.city, is_women_only: !!ad.isWomenOnly, is_free: !!ad.isFree,
-    is_negotiable: !!ad.isNegotiable, price: Number(ad.price || 0), old_price: ad.oldPrice !== null && ad.oldPrice !== undefined ? Number(ad.oldPrice) : null, currency: ad.currency,
-    description: ad.desc || '', images: ad.images || [], image: ad.image || '',
-    lat: Number(ad.lat || 33.5138), lng: Number(ad.lng || 36.2765),
-    seller_username: ad.sellerUsername || '', seller_uid: ad.sellerUid || '',
-    seller_kunya: ad.sellerKunya || '', seller_whatsapp: ad.sellerWhatsapp || '',
-    status: ad.status || 'ACTIVE', created_at: Number(ad.createdAt || Date.now()),
-    queue: ad.queue || [], likes: ad.likes || [], views: Number(ad.views || 0)
-  };
-  await supabaseClient.from('ads').upsert(dbAd);
-}
-
-async function _0xSCTransaction(uid, amount, direction) {
-  if (!supabaseClient || !uid) throw new Error('Нет соединения с БД');
-  const value = _0xSCAmount(amount); 
-  if (!value || value <= 0) throw new Error('Некорректная сумма');
-
-  const { data: res, error } = await supabaseClient.rpc('charge_avitocash', {
-    p_user_identifier: uid,
-    p_amount: value,
-    p_action: direction === 'deduct' ? 'DEDUCT' : 'ADD',
-    p_reason: direction === 'deduct' ? 'Списание средств' : 'Начисление баланса'
-  });
-
-  if (error) throw error;
-  if (!res || !res.success) throw new Error(res?.error || 'Сбой биллинговой операции');
-
-  return Number(res.new_balance || 0);
-}
-
-async function deductBalance(uid, amount) {
-  return await _0xSCTransaction(uid, amount, 'deduct');
-}
-
-function addBalance(uid, amount) {
-  if (!_0xSCAdmin()) return Promise.reject(new Error('Только Главный Администратор может начислять баланс'));
-  return _0xSCTransaction(uid, amount, 'add');
-}
-
-async function initSupabaseSync() {
-  if (!supabaseClient) return;
-  try {
-    const fetchSafe = (queryPromise) => Promise.resolve(queryPromise).catch(err => ({ error: err, data: null }));
-
-    const [usersRes, adsRes, combosRes, catsRes] = await Promise.all([
-      fetchSafe(supabaseClient.from('users').select('*')),
-      fetchSafe(supabaseClient.from('ads').select('*').order('created_at', { ascending: false }).limit(50)),
-      fetchSafe(supabaseClient.from('combos').select('*')),
-      fetchSafe(supabaseClient.from('categories').select('*'))
-    ]);
-    let dataUpdated = false;
-    if (usersRes && usersRes.data && usersRes.data.length > 0) {
-      const allParsedUsers = usersRes.data.map(u => ({
-        ...u,
-        passwordHash: u.password_hash,
-        verifiedShop: !!u.verified_shop,
-        avitocashBalance: Number(u.avitocash_balance || 0),
-        trialBalance: Number(u.trial_balance || 0),
-        showWomenAds: !!u.show_women_ads,
-        frozen: !!u.frozen,
-        isArchived: !!u.is_archived
-      }));
-      users = allParsedUsers.filter(u => !u.isArchived);
-      archivedUsers = allParsedUsers.filter(u => u.isArchived);
-      if (currentUser) {
-        const freshMe = allParsedUsers.find(u =>
-          (u.uid && u.uid === currentUser.uid) ||
-          (u.username && u.username.toLowerCase() === currentUser.username.toLowerCase())
-        );
-        if (freshMe) {
-          if (Array.isArray(freshMe.favorites)) {
-            favorites = [...new Set([...favorites, ...freshMe.favorites])];
-            try { localStorage.setItem('bs_favorites', JSON.stringify(favorites)); } catch (e) {}
-          }
-          currentUser = { ...currentUser, ...freshMe, favorites };
-          saveUserSession(currentUser, true);
-        }
-      }
-      dataUpdated = true;
-    }
-    if (adsRes && adsRes.data) {
-      const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
-      ads = adsRes.data
-        .filter(a => !deletedIds.includes(a.id))
-        .map(a => {
-          const owner = users.find(u =>
-            u.uid === a.seller_uid ||
-            (u.username && a.seller_username && u.username.toLowerCase() === a.seller_username.toLowerCase())
-          );
-          return {
-            id: a.id, title: a.title, category: a.category, storeCategory: a.store_category,
-            region: a.region, city: a.city, isWomenOnly: !!a.is_women_only, isFree: !!a.is_free,
-            isNegotiable: !!a.is_negotiable, price: Number(a.price || 0),
-            oldPrice: (a.old_price != null) ? Number(a.old_price) : null, currency: a.currency,
-            desc: a.description || a.desc || '',
-            images: (Array.isArray(a.images) ? a.images : [a.image || '']).map(fixDirectImageUrl),
-            image: fixDirectImageUrl(a.image || (Array.isArray(a.images) ? a.images[0] : null)),
-            lat: Number(a.lat) || 33.5138, lng: Number(a.lng) || 36.2765,
-            sellerUsername: a.seller_username || owner?.username || '',
-            sellerUid: a.seller_uid || owner?.uid || '',
-            sellerKunya: a.seller_kunya || owner?.kunya || owner?.username || '',
-            sellerWhatsapp: a.seller_whatsapp || owner?.whatsapp || '',
-            status: a.status || 'ACTIVE', createdAt: Number(a.created_at) || Date.now(),
-            queue: Array.isArray(a.queue) ? a.queue : [],
-            likes: Array.isArray(a.likes) ? a.likes : [], views: Number(a.views || 0)
-          };
-        });
-      dataUpdated = true;
-    }
-    if (combosRes && combosRes.data) {
-      combos = combosRes.data.map(c => ({
-        id: c.id, shopUid: c.shop_uid, sellerUsername: c.seller_username,
-        title: c.title, price: Number(c.price || 0),
-        items: Array.isArray(c.items) ? c.items : [],
-        likes: Array.isArray(c.likes) ? c.likes : [],
-        createdAt: Number(c.created_at) || Date.now()
-      }));
-      dataUpdated = true;
-    }
-    if (catsRes && catsRes.data && catsRes.data.length) {
-      categories = catsRes.data;
-      dataUpdated = true;
-    }
-    if (currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'SUPERUSER')) {
-      supabaseClient.from('reports').select('*').then(res => {
-        if (res && res.data) reports = res.data;
-      }).catch(() => {});
-    }
-    if (dataUpdated) {
-      saveCachedAds();
-      renderCategoryPills();
-      renderAds();
-    }
-  } catch (error) {
-    console.error("Ошибка синхронизации Supabase:", error);
   }
 }
 

@@ -322,68 +322,6 @@ async function processAvatarUpload(e, mode = 'auth') {
   } 
 }
 
-async function handleMultiImageCompressUpload(e, mode = 'create') {
-  const files = Array.from(e.target.files || []);
-  if (!files.length) return;
-  const arr = mode === 'create' ? pendingCreateImages : pendingEditImages;
-  const slots = 6 - arr.length;
-  if (slots <= 0) { showToast('Максимум 6 фотографий!', 'warning'); return; }
-
-  showToast(`Загрузка ${Math.min(files.length, slots)} фото в Supabase Storage...`, 'info');
-
-  for (const f of files.slice(0, slots)) {
-    try {
-      let uploadedUrl = null;
-
-      if (supabaseClient) {
-        try {
-          const compressedFile = await compressSingleImageFile(f, 1000, 1000, 0.8);
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`;
-
-          const { data: uploadData, error: sbErr } = await supabaseClient.storage
-            .from('listings')
-            .upload(fileName, compressedFile, {
-              contentType: 'image/jpeg',
-              cacheControl: '31536000',
-              upsert: true
-            });
-
-          if (!sbErr && uploadData) {
-            const { data: pubData } = supabaseClient.storage
-              .from('listings')
-              .getPublicUrl(fileName);
-            if (pubData && pubData.publicUrl) {
-              uploadedUrl = pubData.publicUrl;
-            }
-          } else if (sbErr) {
-            console.warn('Supabase storage upload error:', sbErr.message || sbErr);
-          }
-        } catch (netErr) {
-          console.warn('Network upload fallback to base64:', netErr);
-        }
-      }
-
-      if (!uploadedUrl) {
-        uploadedUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = ev => resolve(ev.target.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(f);
-        });
-      }
-
-      if (uploadedUrl) {
-        arr.push(uploadedUrl);
-        renderPhotoThumbnailsGrid(mode);
-      }
-    } catch (err) {
-      console.error('Photo processing error:', err);
-      showToast('Ошибка при обработке фото', 'error');
-    }
-  }
-  e.target.value = '';
-}
-
 function removePendingPhoto(mode, index) { 
   (mode === 'create' ? pendingCreateImages : pendingEditImages).splice(index, 1); 
   renderPhotoThumbnailsGrid(mode); 
@@ -795,51 +733,6 @@ function toggleNegotiableField(isNeg) {
   } 
 }
 
-// Вспомогательная функция сжатия изображений
-async function compressSingleImageFile(file, maxWidth = 1280, maxHeight = 1280, quality = 0.75) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-canvas.toBlob((blob) => {
-          if (!blob) {
-            return reject(new Error('Canvas toBlob failed'));
-          }
-          const compressedFile = new File([blob], `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`, {
-            type: 'image/jpeg'
-          });
-          resolve(compressedFile);
-        }, 'image/jpeg', quality);
-      };
-      img.onerror = (err) => reject(err);
-	  };
-    reader.onerror = (err) => reject(err);
-  });
-}
 
 async function handleCreateAdSubmit(e) {
   e.preventDefault();
