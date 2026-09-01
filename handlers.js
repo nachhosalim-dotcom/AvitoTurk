@@ -1745,7 +1745,27 @@ function selectSearchSuggestion(title) {
 
 // 6.1. Полное удаление объявления (с подтверждением и защитой от возврата)
 function deleteAdWithConfirm(adId) {
-  deleteAdPermanently(adId);
+  showConfirmModal('Удаление объявления', 'Удалить объявление навсегда из базы данных?', async () => {
+    markAdDeletedLocally(adId);
+    ads = ads.filter(a => a.id !== adId);
+    saveCachedAds();
+
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('ads').delete().eq('id', adId);
+      } catch (err) {
+        console.warn('Supabase delete error:', err);
+      }
+    }
+
+    closeModal('modal-ad-detail');
+    renderAds();
+    renderCategoryPills();
+    if (typeof renderAdminTabContent === 'function' && !byId('modal-admin-panel')?.classList.contains('hidden')) {
+      renderAdminTabContent();
+    }
+    showToast('Объявление удалено навсегда', 'info');
+  });
 }
 
 function toggleSortMenu() {
