@@ -629,10 +629,10 @@ function detectCategoryByTitle(text) {
   const catSel = byId('ad-category');
   if (!catSel) return;
 
-  // 1. ЭЛЕКТРОНИКА И ГАДЖЕТЫ
-  if (/iphone|айфон|samsung|самсунг|телефон|смартфон|ноутбук|пк|компьютер|планшет|часы|наушники|xiaomi|redmi|macbook|монитор|видеокарта|принтер|телевизор|колонка|павербанк|هاتف|جوال|موبايل|لابتوب|كمبيوتر|شاشة|ساعة|ايباد|راوتر|تلفزيون|سماعات/i.test(q)) {
+// 1. ЭЛЕКТРОНИКА И ГАДЖЕТЫ (RU, TR, EN, AR)
+  if (/iphone|айфон|samsung|самсунг|телефон|telefon|смартфон|ноутбук|laptop|пк|компьютер|bilgisayar|планшет|tablet|часы|saat|наушники|kulaklık|kulaklik|xiaomi|redmi|macbook|монитор|monitör|monitor|видеокарта|принтер|yazıcı|yazici|printer|телевизор|televizyon|tv|колонка|hoparlör|павербанк|powerbank|هاتف|جوال|موبايل|لابتوب|كمبيوتر|شاشة|ساعة|ايباد|راوتر|تلفزيون|سماعات/i.test(q)) {
     catSel.value = 'electronics';
-  } 
+  }
   // 2. ТРАНСПОРТ И ЗАПЧАСТИ
   else if (/машина|авто|автомобиль|bmw|mercedes|kia|hyundai|запчасти|колеса|шины|мото|скутер|диски|аккумулятор|starex|масло|фара|крыло|бампер|сиارة|مركبة|موتور|دراجة|قطع غيار|إطارات|بطارية|محرك|سيارات/i.test(q)) {
     catSel.value = 'transport';
@@ -1775,13 +1775,19 @@ function toggleRegionMenu() {
   const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
   const curReg = byId('region-filter')?.value || 'ALL';
   
+  const titleEl = m.querySelector('.text-center');
+  if (titleEl) titleEl.innerText = isTr ? 'İl Seçiniz' : 'Выберите регион';
+
   let html = `<button onclick="selectRegionFilter('ALL')" class="w-full text-left p-3 rounded-xl ig-hover t1 text-sm font-semibold flex justify-between"><span>${isTr ? 'Tüm İller (Türkiye)' : 'Все регионы (Турция)'}</span> ${curReg === 'ALL' ? '<i class="fa-solid fa-check text-blue-500"></i>' : ''}</button>`;
   
   Object.keys(REGION_NAMES).forEach(code => {
-    const name = REGION_NAMES[code];
+    const name = getRegionName(code);
     html += `<button onclick="selectRegionFilter('${code}')" class="w-full text-left p-3 rounded-xl ig-hover t1 text-sm font-semibold flex justify-between"><span>${name}</span> ${curReg === code ? '<i class="fa-solid fa-check text-blue-500"></i>' : ''}</button>`;
   });
   
+  const closeBtn = m.querySelector('button:last-child');
+  if (closeBtn) closeBtn.innerText = isTr ? 'Kapat' : 'Закрыть';
+
   list.innerHTML = html;
   m.classList.remove('hidden');
 }
@@ -1803,12 +1809,12 @@ function updateRegionLabel() {
   const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
   const lbl = byId('current-region-label');
   if (lbl) {
-    lbl.innerText = regVal === 'ALL' ? (isTr ? 'Tüm İller' : 'Все регионы') : (REGION_NAMES[regVal] || regVal);
+    lbl.innerText = regVal === 'ALL' ? (isTr ? 'Tüm İller' : 'Все регионы') : getRegionName(regVal);
   }
 }
 
 function openRadiusMenu() {
-  const m = byId('radius-menu-overlay');
+	const m = byId('radius-menu-overlay');
   if (!m) return;
   if (!userCurrentCoords && navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
