@@ -507,14 +507,15 @@ function getCategoryAdsCount(catId) {
 function renderCategoryPills() {
   const c = byId('categories-container');
   if (!c) return;
-  let pills = [{ id: 'all', icon: 'fa-border-all', name: t('Все') }];
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  let pills = [{ id: 'all', icon: 'fa-border-all', name: isTr ? 'Tümü' : 'Все' }];
   if (currentUser && (currentUser.gender === 'FEMALE' || currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN')) {
-    pills.push({ id: 'women_only', icon: 'fa-venus', name: t('Для женщин 🌸') });
+    pills.push({ id: 'women_only', icon: 'fa-venus', name: isTr ? 'Kadınlara Özel 🌸' : 'Для женщин 🌸' });
   }
-  pills.push({ id: 'free', icon: 'fa-gift', name: t('Даром 🎁') });
-  pills.push({ id: 'discounts', icon: 'fa-percent', name: t('Скидки') });
-  pills.push({ id: 'combos', icon: 'fa-fire', name: t('Акции') });
-  pills = pills.concat(categories.map(x => ({ id: x.id, icon: x.icon || 'fa-tag', name: t(x.name) })));
+  pills.push({ id: 'free', icon: 'fa-gift', name: isTr ? 'Ücretsiz 🎁' : 'Даром 🎁' });
+  pills.push({ id: 'discounts', icon: 'fa-percent', name: isTr ? 'İndirimler' : 'Скидки' });
+  pills.push({ id: 'combos', icon: 'fa-fire', name: isTr ? 'Kampanyalar' : 'Акции' });
+  pills = pills.concat(categories.map(x => ({ id: x.id, icon: x.icon || 'fa-tag', name: t(x.id) || t(x.name) })));
   
   c.innerHTML = pills.map(p => {
     const count = p.id === 'all' 

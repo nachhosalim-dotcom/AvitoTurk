@@ -284,13 +284,50 @@ const I18N = {
     quick_discount_remove: 'İndirimi Kaldır (Eski Fiyata Dön)'
   }
 };
+const CATEGORY_I18N = {
+  'electronics': { ru: 'Электроника', tr: 'Elektronik' },
+  'transport': { ru: 'Транспорт', tr: 'Vasıta & Araçlar' },
+  'realestate': { ru: 'Недвижимость', tr: 'Emlak' },
+  'tools': { ru: 'Инструменты', tr: 'Alet & Edavat' },
+  'home': { ru: 'Для дома', tr: 'Ev & Yaşam' },
+  'food': { ru: 'Продукты', tr: 'Gıda & Market' },
+  'fashion': { ru: 'Одежда и мода', tr: 'Giyim & Moda' },
+  'services': { ru: 'Услуги', tr: 'Hizmetler' },
+  'kids': { ru: 'Детские товары', tr: 'Anne & Bebek' },
+  'other': { ru: 'Прочее', tr: 'Diğer' },
+  'Elektronik': { ru: 'Электроника', tr: 'Elektronik' },
+  'Vasıta & Araçlar': { ru: 'Транспорт', tr: 'Vasıta & Araçlar' },
+  'Emlak': { ru: 'Недвижимость', tr: 'Emlak' },
+  'Alet & Edavat': { ru: 'Инструменты', tr: 'Alet & Edavat' },
+  'Ev & Yaşam': { ru: 'Для дома', tr: 'Ev & Yaşam' },
+  'Gıda & Market': { ru: 'Продукты', tr: 'Gıda & Market' },
+  'Giyim & Moda': { ru: 'Одежда и мода', tr: 'Giyim & Moda' },
+  'Hizmetler': { ru: 'Услуги', tr: 'Hizmetler' },
+  'Anne & Bebek': { ru: 'Детские товары', tr: 'Anne & Bebek' },
+  'Diğer': { ru: 'Прочее', tr: 'Diğer' },
+  'Электроника': { ru: 'Электроника', tr: 'Elektronik' },
+  'Транспорт': { ru: 'Транспорт', tr: 'Vasıta & Araçlar' },
+  'Недвижимость': { ru: 'Недвижимость', tr: 'Emlak' },
+  'Инструменты': { ru: 'Инструменты', tr: 'Alet & Edavat' },
+  'Продукты': { ru: 'Продукты', tr: 'Gıda & Market' },
+  'Одежда и мода': { ru: 'Одежда и мода', tr: 'Giyim & Moda' },
+  'Услуги': { ru: 'Услуги', tr: 'Hizmetler' },
+  'Детские товары': { ru: 'Детские товары', tr: 'Anne & Bebek' },
+  'Прочее': { ru: 'Прочее', tr: 'Diğer' }
+};
 
 function t(keyOrText) {
   if (!keyOrText) return '';
-  const lang = (currentLang === 'tr') ? 'tr' : 'ru';
+  const lang = (typeof currentLang !== 'undefined' && currentLang === 'tr') ? 'tr' : 'ru';
+  
+  if (CATEGORY_I18N[keyOrText]) {
+    return CATEGORY_I18N[keyOrText][lang] || CATEGORY_I18N[keyOrText].tr;
+  }
+  
   if (I18N[lang] && I18N[lang][keyOrText]) {
     return I18N[lang][keyOrText];
   }
+  
   if (lang === 'tr' && I18N.ru) {
     for (const [k, ruVal] of Object.entries(I18N.ru)) {
       if (ruVal === keyOrText && I18N.tr[k]) {
@@ -298,5 +335,14 @@ function t(keyOrText) {
       }
     }
   }
+  
+  if (lang === 'ru' && I18N.tr) {
+    for (const [k, trVal] of Object.entries(I18N.tr)) {
+      if (trVal === keyOrText && I18N.ru[k]) {
+        return I18N.ru[k];
+      }
+    }
+  }
+  
   return keyOrText;
 }
