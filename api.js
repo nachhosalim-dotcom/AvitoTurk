@@ -199,17 +199,22 @@ async function compressSingleImageFile(file, maxWidth = 1280, maxHeight = 1280, 
 }
 
 async function uploadFileToSupabaseStorage(file, bucket = 'listings') {
-  if (!supabaseClient) throw new Error('Supabase client не инициализирован');
   const compressed = await compressSingleImageFile(file, 1200, 1200, 0.75);
   const filePath = `ad_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
+  
+  const directClient = (typeof window.supabase !== 'undefined')
+    ? window.supabase.createClient("https://mmespmwztxkjxhwmsgjn.supabase.co", SUPABASE_ANON_KEY)
+    : supabaseClient;
 
-  const { error: uploadError } = await supabaseClient.storage
+  if (!directClient) throw new Error('Supabase client не инициализирован');
+
+  const { error: uploadError } = await directClient.storage
     .from(bucket)
     .upload(filePath, compressed, { cacheControl: '31536000', upsert: true });
 
   if (uploadError) throw uploadError;
 
-  const { data: pubData } = supabaseClient.storage.from(bucket).getPublicUrl(filePath);
+  const { data: pubData } = directClient.storage.from(bucket).getPublicUrl(filePath);
   return pubData.publicUrl;
 }
 
