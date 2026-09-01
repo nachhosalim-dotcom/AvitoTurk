@@ -223,10 +223,11 @@ async function handleMultiImageCompressUpload(e, mode = 'create') {
   if (!files.length) return;
   const arr = mode === 'create' ? pendingCreateImages : pendingEditImages;
   const slots = 6 - arr.length;
-  if (slots <= 0) { showToast('Максимум 6 фотографий!', 'warning'); return; }
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  if (slots <= 0) { showToast(isTr ? 'Maksimum 6 fotoğraf!' : 'Максимум 6 фотографий!', 'warning'); return; }
 
-  showToast(`Загрузка изображений...`, 'info');
-
+  showToast(isTr ? 'Resimler yükleniyor...' : `Загрузка изображений...`, 'info');
+  
   for (const f of files.slice(0, slots)) {
     try {
       let uploadedUrl = null;
@@ -257,176 +258,7 @@ async function handleMultiImageCompressUpload(e, mode = 'create') {
   e.target.value = '';
 }
 
-/* --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ --- */
-async function handleAuthSubmit(e) {
-  e.preventDefault();
-  const isReg = !byId('reg-fields').classList.contains('hidden');
-  const remember = byId('auth-remember-me') ? byId('auth-remember-me').checked : true;
-  const btn = byId('auth-submit-btn');
-  const originalText = btn.innerText;
-  btn.disabled = true;
-
-  if (isReg) {
-    const username = byId('reg-username')?.value.trim();
-    const passwordRaw = byId('reg-password')?.value;
-    const passwordConfirm = byId('reg-password-confirm')?.value;
-    const kunya = byId('reg-kunya')?.value.trim();
-    const whatsappRaw = byId('reg-whatsapp')?.value.trim();
-    const genderRadio = document.querySelector('input[name="auth-gender"]:checked');
-
-    if (!username || username.length < 3) {
-      showToast('Логин должен быть не менее 3 символов', 'warning');
-      btn.disabled = false; return;
-    }
-    if (!passwordRaw || passwordRaw.length < 6 || passwordRaw !== passwordConfirm) {
-      showToast('Пароли не совпадают или короче 6 символов', 'warning');
-      btn.disabled = false; return;
-    }
-    if (!genderRadio) {
-      showToast('Выберите ваш пол', 'warning');
-      btn.disabled = false; return;
-    }
-
-    const waCheck = validateWhatsApp(whatsappRaw);
-    if (!waCheck.valid) {
-      showToast(waCheck.error, 'error');
-      btn.disabled = false; return;
-    }
-
-    btn.innerText = 'Регистрация...';
-    const passHash = await sha256(passwordRaw);
-    const uid = 'u_' + Date.now();
-
-    const newUserPayload = {
-      uid: uid,
-      username: username,
-      password_hash: passHash,
-      kunya: kunya || username,
-      gender: genderRadio.value,
-      whatsapp: waCheck.number,
-      avatar: null,
-      role: 'USER',
-      avitocash_balance: 0,
-      trial_balance: 10,
-      favorites: []
-    };
-
-    let regSuccessUser = null;
-
-    if (supabaseClient) {
-      try {
-        const { data: insData, error: insErr } = await supabaseClient
-          .from('users')
-          .insert([newUserPayload])
-          .select()
-          .single();
-
-        if (insErr) {
-          if (insErr.code === '23505' || insErr.message.includes('unique')) {
-            showToast('Логин или номер уже зарегистрирован', 'error');
-            btn.disabled = false; btn.innerText = originalText; return;
-          }
-          console.warn('Direct user insert warning:', insErr.message);
-        } else if (insData) {
-          regSuccessUser = {
-            ...insData,
-            passwordHash: insData.password_hash,
-            avitocashBalance: Number(insData.avitocash_balance || 0),
-            trialBalance: Number(insData.trial_balance || 10)
-          };
-        }
-      } catch (cloudErr) {
-        console.warn('Registration cloud sync error:', cloudErr);
-      }
-    }
-
-    if (!regSuccessUser) {
-      regSuccessUser = {
-        ...newUserPayload,
-        passwordHash: passHash,
-        avitocashBalance: 0,
-        trialBalance: 10
-      };
-    }
-
-    const idx = users.findIndex(u => u.uid === regSuccessUser.uid || u.username.toLowerCase() === regSuccessUser.username.toLowerCase());
-    if (idx !== -1) users[idx] = regSuccessUser;
-    else users.push(regSuccessUser);
-
-    saveUserSession(regSuccessUser, remember);
-    closeModal('modal-auth');
-    showToast(`Регистрация завершена! Добро пожаловать, ${regSuccessUser.kunya || regSuccessUser.username}!`, 'success');
-    btn.disabled = false; btn.innerText = originalText;
-
-  } else {
-    const loginIdentifier = byId('auth-username').value.trim();
-    const rawPassword = byId('auth-password').value;
-
-    if (!loginIdentifier || !rawPassword) {
-      showToast('Введите логин и пароль', 'warning');
-      btn.disabled = false; return;
-    }
-
-    btn.innerText = 'Вход...';
-    const password = await sha256(rawPassword);
-    let foundUser = null;
-
-    if (supabaseClient) {
-      try {
-        const cleanWa = loginIdentifier.replace(/\D/g, '');
-        const { data: foundRows, error: findErr } = await supabaseClient
-          .from('users')
-          .select('*')
-          .or(`username.ilike.${loginIdentifier},whatsapp.ilike.%${cleanWa ? cleanWa : 'NOMATCH'}%`)
-          .eq('password_hash', password)
-          .limit(1);
-
-        if (!findErr && foundRows && foundRows.length > 0) {
-          const u = foundRows[0];
-          foundUser = {
-            ...u,
-            passwordHash: u.password_hash,
-            avitocashBalance: Number(u.avitocash_balance || 0),
-            trialBalance: Number(u.trial_balance || 0),
-            favorites: Array.isArray(u.favorites) ? u.favorites : []
-          };
-        }
-      } catch (err) {
-        console.warn("Supabase auth check err:", err);
-      }
-    }
-
-    if (!foundUser) {
-      foundUser = users.find(u => 
-        ((u.username && u.username.toLowerCase() === loginIdentifier.toLowerCase()) || 
-         (u.whatsapp && u.whatsapp.replace(/\D/g, '') === loginIdentifier.replace(/\D/g, ''))) &&
-        u.passwordHash === password
-      );
-    }
-
-    if (foundUser) {
-      if (foundUser.is_archived || foundUser.isArchived) {
-        showToast('Аккаунт в архиве', 'error');
-        btn.disabled = false; btn.innerText = originalText; return;
-      }
-      const idx = users.findIndex(u => u.uid === foundUser.uid);
-      if (idx !== -1) users[idx] = foundUser;
-      else users.push(foundUser);
-
-      if (Array.isArray(foundUser.favorites)) {
-        favorites = [...new Set([...(Array.isArray(favorites) ? favorites : []), ...foundUser.favorites])];
-        try { localStorage.setItem('bs_favorites', JSON.stringify(favorites)); } catch (err) {}
-      }
-      saveUserSession(foundUser, remember);
-      closeModal('modal-auth');
-      showToast(`С возвращением, ${foundUser.kunya || foundUser.username}!`, 'success');
-    } else {
-      showToast('Неверный логин или пароль', 'error');
-    }
-
-    btn.disabled = false; btn.innerText = originalText;
-  }
-}
+/* --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ (Логика перенесена в handlers.js) --- */
 
 /* --- СОХРАНЕНИЕ ОБЪЯВЛЕНИЙ --- */
 async function saveAdToSupabase(ad) {
@@ -895,7 +727,7 @@ const sortLbl = byId('current-sort-label');
   const sortCloseBtn = byId('sort-menu-overlay')?.querySelector('button:last-child');
   if (sortCloseBtn) sortCloseBtn.innerText = isTr ? 'Kapat' : 'Закрыть';
   
-  // Модалка создания объявления
+// Модалка создания объявления
   const createTitle = document.querySelector('#modal-create-ad h3');
   if (createTitle) createTitle.innerText = t('ad_create_title');
   const adPhotoLbl = byId('ad-photos-label');
@@ -907,17 +739,28 @@ const sortLbl = byId('current-sort-label');
   const adPriceInp = byId('ad-price');
   if (adPriceInp) adPriceInp.placeholder = t('ad_price_ph');
   const adFreeLbl = byId('ad-is-free')?.parentElement?.querySelector('span');
-  if (adFreeLbl) adFreeLbl.innerText = t('ad_free_label');
+  if (adFreeLbl) adFreeLbl.innerText = isTr ? 'Ücretsiz (Hediye) 🎁' : 'Даром 🎁';
   const adNegLbl = byId('ad-is-negotiable')?.parentElement?.querySelector('span');
-  if (adNegLbl) adNegLbl.innerText = t('ad_negotiable_label');
+  if (adNegLbl) adNegLbl.innerText = isTr ? 'Fiyat Pazarlıklı 🤝' : 'Договорная 🤝';
   const adWmLbl = byId('ad-is-women-only')?.parentElement?.querySelector('span');
-  if (adWmLbl) adWmLbl.innerText = t('ad_women_label');
+  if (adWmLbl) adWmLbl.innerText = isTr ? 'Sadece Kadınlara Özel 🌸' : 'Для женщин 🌸';
   const adDescInp = byId('ad-desc');
   if (adDescInp) adDescInp.placeholder = t('ad_desc_ph');
   const adAdvBtn = byId('create-ad-advanced-fields')?.previousElementSibling?.querySelector('span');
   if (adAdvBtn) adAdvBtn.innerHTML = `<i class="fa-solid fa-sliders text-purple-400"></i> ${t('ad_advanced_btn')}`;
   const createSubBtn = document.querySelector('#modal-create-ad button[type="submit"]');
   if (createSubBtn) createSubBtn.innerText = t('ad_submit_btn');
+
+  // Баннер черновика
+  const draftBanner = byId('draft-restore-banner');
+  if (draftBanner) {
+    const dSpan = draftBanner.querySelector('span');
+    if (dSpan) dSpan.innerHTML = `<i class="fa-solid fa-rotate-left"></i> ${isTr ? 'Taslak bulundu' : 'Найден черновик'}`;
+    const dRestBtn = draftBanner.querySelector('button[onclick="restoreDraft()"]');
+    if (dRestBtn) dRestBtn.innerText = isTr ? 'Geri Yükle' : 'Восстановить';
+    const dDelBtn = draftBanner.querySelector('button[onclick="clearDraft(true)"]');
+    if (dDelBtn) dDelBtn.innerText = isTr ? 'Sil' : 'Удалить';
+  }
 
   // Модалка магазина
   const shopNameInp = byId('shop-name');
@@ -930,16 +773,37 @@ const sortLbl = byId('current-sort-label');
   if (shopHoursInp) shopHoursInp.placeholder = t('shop_hours_ph');
   const shopWaInp = byId('shop-whatsapp');
   if (shopWaInp) shopWaInp.placeholder = t('shop_whatsapp_ph');
-  const shopDescInp = byId('shop-desc');
+const shopDescInp = byId('shop-desc');
   if (shopDescInp) shopDescInp.placeholder = t('shop_desc_ph');
 
+  // Модалка создания магазина - надписи и карта
+  const shopMapLbl = document.querySelector('#modal-create-shop label[for="shop-create-map"]') || document.querySelector('#modal-create-shop label:has(+ #shop-create-map)');
+  if (shopMapLbl) shopMapLbl.innerText = t('shop_map_label');
+
+  const shopLogoLbl = document.querySelector('#modal-create-shop label[for="shop-logo-file"]') || document.querySelector('#modal-create-shop label:has(+ #shop-logo-file)');
+  if (shopLogoLbl) shopLogoLbl.innerText = t('shop_logo_label');
+
+  const shopNotice = document.querySelector('#modal-create-shop .bg-field.t2');
+  if (shopNotice) shopNotice.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${t('shop_admin_notice')}`;
+
+  const shopCatSel = byId('shop-category');
+  if (shopCatSel && shopCatSel.options.length >= 7) {
+    shopCatSel.options[0].text = isTr ? 'Mağaza Kategorisi *' : 'Категория магазина *';
+    shopCatSel.options[1].text = isTr ? 'Elektronik ve Teknoloji' : 'Электроника и Техника';
+    shopCatSel.options[2].text = isTr ? 'Vasıta & Yedek Parça' : 'Авто & Запчасти';
+    shopCatSel.options[3].text = isTr ? 'Emlak' : 'Недвижимость';
+    shopCatSel.options[4].text = isTr ? 'Ev & Yaşam' : 'Товары для дома';
+    shopCatSel.options[5].text = isTr ? 'Hizmetler & Servis' : 'Услуги & Сервис';
+    shopCatSel.options[6].text = isTr ? 'Diğer' : 'Разное';
+  }
+  
 // Поиск
   const sDesk = byId('search-input-desktop');
   if (sDesk) sDesk.placeholder = t('search');
   const sMob = byId('search-input');
   if (sMob) sMob.placeholder = t('search');
 
-  // Бегущая строка
+// Бегущая строка
   const marqueeDesktop = byId('desktop-marquee-text');
   const marqueeMobile = byId('mobile-marquee-text');
   const defaultMarqueeTr = "🔥 Avito Türk'e Hoş Geldiniz! • 🇹🇷 Türkiye'nin Güvenilir Seri İlan Platformu • 💰 Güncel Döviz Kurları • 🚀 Mağazanızı Açın ve Hızlı Satın • 🔍 Araç, Emlak ve İkinci El Ürünleri Keşfedin";
@@ -949,6 +813,144 @@ const sortLbl = byId('current-sort-label');
   if (marqueeMobile && !MARQUEE_SETTINGS.text) marqueeMobile.innerText = isTr ? defaultMarqueeTr : defaultMarqueeRu;
 
   // Футер
-  const devLbl = byId('ft-dev-label');
+const devLbl = byId('ft-dev-label');
   if (devLbl) devLbl.innerText = isTr ? 'Geliştirici:' : 'Разработчик:';
+
+// Расширенные поля подачи объявления
+  const cityInp = byId('ad-city');
+  if (cityInp) cityInp.placeholder = isTr ? 'İlçe / Mahalle' : 'Город/район';
+
+  const advFieldsWrap = byId('create-ad-advanced-fields');
+  if (advFieldsWrap) {
+    const labels = advFieldsWrap.querySelectorAll('label');
+    if (labels.length >= 4) {
+      labels[0].innerText = isTr ? 'İl / Bölge' : 'Регион вручную';
+      labels[1].innerText = isTr ? 'İlçe / Mahalle' : 'Точный город/район';
+      labels[2].innerText = isTr ? 'Para Birimi' : 'Валюта';
+      labels[3].innerText = isTr ? 'Haritada Konumu Belirleyin (isteğe bağlı)' : 'Уточнить точку на карте (необязательно)';
+    }
+  }
+
+  const autoBadge = document.querySelector('#modal-create-ad .text-emerald-500');
+  if (autoBadge) autoBadge.innerText = isTr ? 'Otomatik' : 'Автоматически';
+
+  // Панель администратора
+  const adminPanel = byId('modal-admin-panel');
+  if (adminPanel) {
+    const headerTitle = adminPanel.querySelector('h3');
+    if (headerTitle) headerTitle.innerText = isTr ? 'Yönetici Kontrol Paneli' : 'Панель управления Главного Администратора';
+    
+    const tabOverview = byId('atab-overview');
+    if (tabOverview) tabOverview.innerText = isTr ? 'Genel Bakış' : 'Обзор';
+    
+    const tabUsers = byId('atab-users');
+    if (tabUsers) tabUsers.innerText = isTr ? 'Kullanıcılar' : 'Пользователи';
+    
+    const tabAds = byId('atab-ads');
+    if (tabAds) tabAds.innerText = isTr ? 'İlanlar' : 'Объявления';
+  }
+  
+  // Модальное окно жалобы (modal-report-ad)
+  const repModal = byId('modal-report-ad');
+  if (repModal) {
+    const repTitle = repModal.querySelector('h3');
+    if (repTitle) repTitle.innerText = isTr ? 'İlanı Şikayet Et' : 'Пожаловаться на объявление';
+    const repDesc = repModal.querySelector('p');
+    if (repDesc) repDesc.innerText = isTr ? 'Bu ilanı kurallara uygunluk açısından inceleyeceğiz.' : 'Мы проверим это объявление на нарушение правил.';
+    const repSel = byId('report-reason');
+    if (repSel && repSel.options.length >= 6) {
+      repSel.options[0].text = isTr ? 'Sebep seçin...' : 'Выберите причину...';
+      repSel.options[1].text = isTr ? 'Dolandırıcılık / Sahtekarlık' : 'Мошенничество / Скам';
+      repSel.options[2].text = isTr ? 'Sahte Ürün / Yanıltıcı Fotoğraf' : 'Фейковый товар / Фото';
+      repSel.options[3].text = isTr ? 'Yasaklı Ürün' : 'Запрещенный товар';
+      repSel.options[4].text = isTr ? 'Spam / Tekrarlanan İlan' : 'Спам / Дубликат';
+      repSel.options[5].text = isTr ? 'Diğer' : 'Другое';
+    }
+    const repComm = byId('report-comment');
+    if (repComm) repComm.placeholder = isTr ? 'Açıklama (isteğe bağlı)' : 'Комментарий (необязательно)';
+    const repBtn = repModal.querySelector('button[type="submit"]');
+    if (repBtn) repBtn.innerText = isTr ? 'Şikayeti Gönder' : 'Отправить жалобу';
+  }
+
+// Модальное окно правил (modal-rules-agreement)
+  const rulesModal = byId('modal-rules-agreement');
+  if (rulesModal) {
+    const rulesTitle = rulesModal.querySelector('h2');
+    if (rulesTitle) rulesTitle.innerText = isTr ? 'Avito Türk Kullanım Kuralları' : 'Правила и рекомендации Авито Шам';
+    const rulesSub = rulesModal.querySelector('p.text-xs.font-semibold');
+    if (rulesSub) rulesSub.innerText = isTr ? 'Ticareti dürüst yapın • Bol kazançlar!' : 'اتَّقُوا اللَّهَ فِي التِّجَارَةِ • Бойтесь Аллаха в торговле!';
+    const rulesBody = rulesModal.querySelector('.modal-scroll-body');
+    if (rulesBody) {
+      rulesBody.innerHTML = isTr ? `
+        <div class="border-b b-ig pb-3 mb-2 space-y-2">
+          <div class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-lightbulb" style="color:#d69e2e"></i><span>Başarılı işlemler için 3 önemli tavsiye:</span></div>
+          <p>1. <strong>Dürüst açıklama ve kusurlar:</strong> Tüm kusurları belirtin. Şeffaflık satışı hızlandırır.</p>
+          <p>2. <strong>Güvenli buluşma noktaları:</strong> Kalabalık ve bilinen halka açık yerlerde buluşun.</p>
+          <p>3. <strong>Sıra sistemini kullanın:</strong> Ürünleri ayırtmak için «Sıraya Gir» butonunu kullanın.</p>
+        </div>
+        <p>1. <strong>Dürüstlük ve şeffaflık:</strong> Ürünün kusurlarını veya hasarlarını gizlemek kesinlikle yasaktır.</p>
+        <p>2. <strong>Yasaklı ürünler:</strong> Silah, mühimmat, yasadışı maddeler ve kaçak ürünlerin yayınlanması kesinlikle yasaktır.</p>
+        <p>3. <strong>Sivil platform:</strong> Platform yalnızca sivil bir seri ilan ve ticaret alanıdır.</p>
+      ` : `
+        <div class="border-b b-ig pb-3 mb-2 space-y-2">
+          <div class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-lightbulb" style="color:#d69e2e"></i><span>3 главных совета для удачных сделок:</span></div>
+          <p>1. <strong>Честное описание и изъяны:</strong> Указывайте все дефекты. Прозрачность ускоряет продажу.</p>
+          <p>2. <strong>Безопасные места встреч:</strong> Встречайтесь в людных и известных публичных местах.</p>
+          <p>3. <strong>Используйте Очередь:</strong> Нажимайте «Занять очередь» для бронирования товаров.</p>
+        </div>
+        <p>1. <strong>Честность и прозрачность:</strong> Категорически запрещено скрывать дефекты, изъяны или повреждения товара.</p>
+        <p>2. <strong>Запрещенные товары:</strong> Строго запрещена публикация любого оружия, боеприпасов, нелегальных веществ и контрабанды.</p>
+        <p>3. <strong>Гражданский ресурс:</strong> Платформа является исключительно гражданской торговой площадкой.</p>
+      `;
+    }
+    const rulesBtn = byId('rules-accept-btn');
+    if (rulesBtn) rulesBtn.innerText = isTr ? 'Şartları Kabul Ediyorum' : 'Я подтверждаю и принимаю условия';
+  }
+  
+  // Модальное окно "Поделиться" (modal-share)
+  const shareModal = byId('modal-share');
+  if (shareModal) {
+    const shareTitle = shareModal.querySelector('.text-center.font-bold');
+    if (shareTitle) shareTitle.innerText = isTr ? 'İlanı Paylaş' : 'Поделиться объявлением';
+    const cancelBtn = shareModal.querySelector('button[onclick*="closeModal"]');
+    if (cancelBtn) cancelBtn.innerText = isTr ? 'İptal' : 'Отмена';
+  }
+
+// Оффлайн экран (offline-screen)
+  const offScreen = byId('offline-screen');
+  if (offScreen) {
+    const offTitle = offScreen.querySelector('h2');
+    if (offTitle) offTitle.innerText = isTr ? 'İnternet Bağlantısı Yok' : 'Нет подключения к сети';
+    const offText = offScreen.querySelector('p');
+    if (offText) offText.innerText = isTr ? 'İnternet bağlantınızı kontrol edin. Bağlantı sağlandığında uygulama otomatik olarak çalışmaya devam edecektir.' : 'Проверьте интернет-соединение. Приложение автоматически продолжит работу, как только связь восстановится.';
+    const offWait = offScreen.querySelector('.animate-ping')?.parentElement;
+    if (offWait) offWait.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>${isTr ? 'Ağ bekleniyor...' : 'Ожидание сети...'}`;
+  }
+
+  // Скрытые надписи в подаче объявления (Гость, Админ, Магазин)
+  const guestAuthBlock = byId('guest-auth-block');
+  if (guestAuthBlock) {
+    const guestLbl = guestAuthBlock.querySelector('.font-bold');
+    if (guestLbl) guestLbl.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> ${isTr ? 'İletişim numarası (profil otomatik oluşturulur):' : 'Контакт для связи (профиль создастся автоматически):'}`;
+    const guestWa = byId('guest-whatsapp');
+    if (guestWa) guestWa.placeholder = isTr ? 'WhatsApp numaranız (+90...)*' : 'Ваш номер WhatsApp (+90…)*';
+  }
+
+  const userLoggedBadge = byId('user-logged-badge');
+  if (userLoggedBadge) {
+    const badgeSpan = userLoggedBadge.querySelector('span');
+    if (badgeSpan) badgeSpan.childNodes[0].nodeValue = isTr ? 'Şu hesap adına yayınlanıyor: ' : 'Публикация от имени: ';
+  }
+
+  const adOnBehalf = byId('ad-onbehalf-container');
+  if (adOnBehalf) {
+    const onbLbl = adOnBehalf.querySelector('label');
+    if (onbLbl) onbLbl.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${isTr ? 'Kullanıcı adına yayınla (Admin)' : 'От имени пользователя (Админ)'}`;
+  }
+
+  const adStoreCat = byId('ad-store-cat-container');
+  if (adStoreCat) {
+    const catLbl = adStoreCat.querySelector('label');
+    if (catLbl) catLbl.innerHTML = `<i class="fa-solid fa-tags"></i> ${isTr ? 'Mağaza Kategorisi' : 'Категория магазина'}`;
+  }
 }

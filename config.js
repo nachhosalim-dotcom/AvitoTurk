@@ -39,27 +39,26 @@ const PLACEHOLDER_IMG = 'https://placehold.co/800x1000/1e293b/fff?text=Avito+Tü
 let EXCHANGE_RATES = { TRY: 38.50 };
 let SYSTEM_CONFIG = { rulesAccepted: false, adminTab: 'overview' };
 const REGION_NAMES = { 
-  'IST': { ru: 'Стамбул', tr: 'İstanbul' }, 
-  'ANK': { ru: 'Анкара', tr: 'Ankara' }, 
-  'IZM': { ru: 'Измир', tr: 'İzmir' }, 
-  'BUR': { ru: 'Бурса', tr: 'Bursa' }, 
-  'ANT': { ru: 'Анталья', tr: 'Antalya' }, 
-  'GAZ': { ru: 'Газиантеп', tr: 'Gaziantep' }, 
-  'HAT': { ru: 'Хатай', tr: 'Hatay' }, 
-  'MER': { ru: 'Мерсин', tr: 'Mersin' }, 
-  'URF': { ru: 'Шанлыурфа', tr: 'Şanlıurfa' }, 
-  'KON': { ru: 'Конья', tr: 'Konya' }, 
-  'ADA': { ru: 'Адана', tr: 'Adana' }, 
-  'KAY': { ru: 'Кайсери', tr: 'Kayseri' }, 
-  'SAM': { ru: 'Самсун', tr: 'Samsun' }, 
-  'TRA': { ru: 'Трабзон', tr: 'Trabzon' } 
+  'IST': 'İstanbul', 'ANK': 'Ankara', 'IZM': 'İzmir', 'BUR': 'Bursa', 
+  'ANT': 'Antalya', 'GAZ': 'Gaziantep', 'HAT': 'Hatay', 'MER': 'Mersin', 
+  'URF': 'Şanlıurfa', 'KON': 'Konya', 'ADA': 'Adana', 'KAY': 'Kayseri', 
+  'SAM': 'Samsun', 'TRA': 'Trabzon' 
+};
+
+const REGION_NAMES_RU = { 
+  'IST': 'Стамбул', 'ANK': 'Анкара', 'IZM': 'Измир', 'BUR': 'Бурса', 
+  'ANT': 'Анталья', 'GAZ': 'Газиантеп', 'HAT': 'Хатай', 'MER': 'Мерсин', 
+  'URF': 'Шанлыурфа', 'KON': 'Конья', 'ADA': 'Адана', 'KAY': 'Кайсери', 
+  'SAM': 'Самсун', 'TRA': 'Трабзон' 
 };
 
 function getRegionName(code) {
-  if (!code || code === 'ALL') return currentLang === 'tr' ? 'Tüm İller' : 'Все регионы';
-  const reg = REGION_NAMES[code];
-  if (!reg) return code;
-  return typeof reg === 'object' ? (reg[currentLang] || reg.tr) : reg;
+  if (!code || code === 'ALL') return (typeof currentLang !== 'undefined' && currentLang === 'tr') ? 'Tüm İller' : 'Все регионы';
+  const lang = (typeof currentLang !== 'undefined') ? currentLang : 'tr';
+  if (lang === 'ru') {
+    return REGION_NAMES_RU[code] || REGION_NAMES[code] || code;
+  }
+  return REGION_NAMES[code] || code;
 }
 const REGION_COORDS = { 
   'IST': [41.0082, 28.9784], 'ANK': [39.9334, 32.8597], 'IZM': [38.4192, 27.1287], 

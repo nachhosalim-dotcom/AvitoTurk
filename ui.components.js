@@ -208,12 +208,12 @@ const isTr = (typeof currentLang !== 'undefined' && currentLang === 'tr');
       ctx.textBaseline = 'alphabetic'; 
     }
 
-    // Имя и регион продавца
-    ctx.fillStyle = '#f5f5f5'; 
+// Имя и регион продавца
+    ctx.fillStyle = '#f59e0b'; 
     ctx.font = 'bold 38px Arial';
-    const nameStr = kunya || (isCombo ? 'Магазин' : 'Avito Sham');
+    const nameStr = kunya || (isCombo ? (isTr ? 'Mağaza' : 'Магазин') : 'Avito Türk');
     ctx.fillText(nameStr, padX + avR * 2 + 26, hy + avR - 4);
-
+	
     if (verified) { 
       const nw = ctx.measureText(nameStr).width; 
       const bx = padX + avR * 2 + 26 + nw + 22, byy = hy + avR - 16; 
@@ -388,14 +388,14 @@ const isTr = (typeof currentLang !== 'undefined' && currentLang === 'tr');
     ctx.font = 'bold 36px Arial';
     wrapTextCanvas(ctx, cardTitle, titleMaxW, 2).forEach((ln, i) => ctx.fillText(ln, px, fy + phh + 50 + i * 44));
 
-    // Если это комбо — выводим названия товаров комплекта
+// Если это комбо — выводим названия товаров комплекта
     if (isCombo && Array.isArray(ad.comboItems) && ad.comboItems.length > 0) {
-      const itemsListStr = t('В комплекте: ') + ad.comboItems.map(it => it.title).join(' + ');
+      const itemsListStr = (isTr ? 'Paket İçeriği: ' : 'В комплекте: ') + ad.comboItems.map(it => it.title).join(' + ');
       ctx.fillStyle = '#f97316';
       ctx.font = 'bold 24px Arial';
       wrapTextCanvas(ctx, itemsListStr, titleMaxW, 1).forEach((ln) => ctx.fillText(ln, px, fy + phh + 142));
     }
-
+	
 // Нижняя плашка с логотипом платформы
     const by2 = H - FR - 36;
     ctx.font = '54px "Grand Hotel", cursive';
@@ -798,10 +798,10 @@ ${ad.isCombo ? renderComboSlashCollage(ad) : `
 `}
 ${ad.isCombo ? `
   <div class="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-xl text-xs font-black text-white flex items-center gap-1.5 shadow-xl border border-white/20" style="background:linear-gradient(45deg,#f97316,#ef4444)">
-    <i class="fa-solid fa-fire animate-pulse text-sm"></i> АКЦИЯ • КОМБО
+    <i class="fa-solid fa-fire animate-pulse text-sm"></i> ${currentLang === 'tr' ? 'KAMPANYA • KOMBO' : 'АКЦИЯ • КОМБО'}
   </div>` : (hasDiscount ? `
   <div class="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-xl text-xs font-black text-white flex items-center gap-1.5 shadow-2xl border border-white/25" style="background:linear-gradient(45deg,#ef4444,#b91c1c)">
-    <i class="fa-solid fa-fire-flame-curved animate-bounce"></i> СКИДКА -${discPercent}%
+    <i class="fa-solid fa-fire-flame-curved animate-bounce"></i> ${currentLang === 'tr' ? 'İNDİRİM' : 'СКИДКА'} -${discPercent}%
   </div>` : `<span class="absolute top-3 left-3 z-10 bg-black/70 text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/10">${priceBadge(ad)}</span>`)}
 ${ad.isWomenOnly ? `<span class="absolute bottom-3 left-3 z-10 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg" style="background:rgba(236,72,153,.9)">${t('Для женщин 🌸')}</span>` : ''}
 ${imgs.length > 1 ? `<button onclick="cardNav(event,'${ad.id}',-1)" aria-label="Предыдущее фото" class="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center shadow hover:bg-white">${IGSVG.chevL()}</button><button onclick="cardNav(event,'${ad.id}',1)" aria-label="Следующее фото" class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center shadow hover:bg-white">${IGSVG.chevR()}</button><div id="cdot-${ad.id}" class="absolute bottom-2.5 inset-x-0 z-10 flex justify-center gap-1">${imgs.map((_, i) => `<span class="w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-white' : 'bg-white/40'}"></span>`).join('')}</div>` : ''}
@@ -810,7 +810,7 @@ ${imgs.length > 1 ? `<button onclick="cardNav(event,'${ad.id}',-1)" aria-label="
 <button onclick="toggleLike('${ad.id}', event)" class="ig-btn-nav ${liked ? 'heart-pop' : ''}" title="Лайк">${IGSVG.heart(liked)}</button>
 <button onclick="toggleFavorite('${ad.id}', event)" class="ig-btn-nav ${isFav ? 'heart-pop' : ''}" title="В избранное" style="${isFav ? 'color:#f59e0b' : ''}">${IGSVG.star(isFav)}</button>
 <button onclick="shareAd('${ad.id}')" class="ig-btn-nav" title="Поделиться">${IGSVG.send()}</button>
-${ad.isCombo ? `<span class="ml-auto text-[11px] font-extrabold flex items-center gap-1" style="color:#f97316"><i class="fa-solid fa-fire"></i> ${ad.comboItems.length} товаров</span>` : `<button onclick="queueToggleCard('${ad.id}')" class="ig-btn-nav ml-auto" title="Занять очередь">${IGSVG.bookmark(isFav)}</button>`}
+${ad.isCombo ? `<span class="ml-auto text-[11px] font-extrabold flex items-center gap-1" style="color:#f97316"><i class="fa-solid fa-fire"></i> ${ad.comboItems.length} ${currentLang === 'tr' ? 'ürün' : 'товаров'}</span>` : `<button onclick="queueToggleCard('${ad.id}')" class="ig-btn-nav ml-auto" title="Занять очередь">${IGSVG.bookmark(isFav)}</button>`}
 </div>
 ${hasDiscount ? `
   <div class="mx-3.5 mt-2 p-2.5 rounded-xl border flex items-center justify-between" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)">
@@ -819,7 +819,7 @@ ${hasDiscount ? `
       <div class="text-base font-black" style="color:#ef4444">$${Number(ad.price).toFixed(2)} <span class="text-[10px] font-extrabold text-black px-1.5 py-0.5 rounded ml-1 bg-red-400">-${discPercent}%</span></div>
     </div>
 	<div class="text-right">
-    <div class="text-[10px] uppercase font-bold t2">Ваша выгода:</div>
+    <div class="text-[10px] uppercase font-bold t2">${currentLang === 'tr' ? 'Kazanç:' : 'Ваша выгода:'}</div>
     <div class="text-xs font-black" style="color:#10b981">+$${saveAmount.toFixed(2)}</div>
   </div>
 </div>` : ''}
@@ -1712,9 +1712,9 @@ function openProfileModal() {
 		
 <!-- Настройки: Язык, Тема, Вид ленты и Магазин -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <!-- Язык -->
+<!-- Язык -->
             <div class="bg-field border b-ig p-2 rounded-xl flex items-center justify-between">
-                <span class="text-[10px] t2 font-bold uppercase">Язык</span>
+                <span class="text-[10px] t2 font-bold uppercase">${currentLang === 'tr' ? 'DİL' : 'ЯЗЫК'}</span>
                 <div class="flex gap-1">
                     <button type="button" onclick="changeLanguage('ru')" class="px-1.5 py-0.5 rounded text-[10px] font-bold ${currentLang === 'ru' ? 'bg-blue-500 text-white' : 't2'}">RU</button>
                     <button type="button" onclick="changeLanguage('tr')" class="px-1.5 py-0.5 rounded text-[10px] font-bold ${currentLang === 'tr' ? 'bg-blue-500 text-white' : 't2'}">TR</button>
@@ -1797,6 +1797,41 @@ async function toggleShowWomenAds(enabled) {
 function openEditProfileModal(targetUsername) { 
   const user = users.find(u => u.username === targetUsername) || currentUser; 
   if (!user) return; 
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+
+  const modal = byId('modal-edit-profile');
+  if (modal) {
+    const titleEl = modal.querySelector('h3');
+    if (titleEl) titleEl.innerText = isTr ? 'Profili Düzenle' : 'Редактирование анкеты';
+    const subBtn = modal.querySelector('button[type="submit"]');
+    if (subBtn) subBtn.innerText = isTr ? 'Değişiklikleri Kaydet' : 'Сохранить изменения';
+  }
+
+  const logInp = byId('edit-profile-login');
+  if (logInp) logInp.placeholder = isTr ? 'Kullanıcı Adı *' : 'Логин *';
+
+  const passInp = byId('edit-profile-password');
+  if (passInp) passInp.placeholder = isTr ? 'Yeni Şifre (isteğe bağlı)' : 'Новый пароль (необязательно)';
+
+  const kunyaInp = byId('edit-profile-kunya');
+  if (kunyaInp) kunyaInp.placeholder = isTr ? 'İsim / Lakap *' : 'Имя / Кунья *';
+
+  const waInp = byId('edit-profile-whatsapp');
+  if (waInp) waInp.placeholder = isTr ? 'WhatsApp Numarası *' : 'WhatsApp *';
+
+  const genderSel = byId('edit-profile-gender');
+  if (genderSel && genderSel.options.length >= 2) {
+    genderSel.options[0].text = isTr ? 'Erkek' : 'Мужчина';
+    genderSel.options[1].text = isTr ? 'Kadın 🌸' : 'Женщина 🌸';
+  }
+
+  const roleSel = byId('edit-profile-role');
+  if (roleSel && roleSel.options.length >= 3) {
+    roleSel.options[0].text = isTr ? 'Kullanıcı' : 'Пользователь';
+    roleSel.options[1].text = isTr ? 'Moderatör / Yönetici' : 'Модератор / Администратор';
+    roleSel.options[2].text = isTr ? 'Süper Yönetici' : 'Главный Администратор';
+  }
+
   byId('edit-profile-username').value = user.username; 
   byId('edit-profile-login').value = user.username; 
   byId('edit-profile-password').value = ''; 
@@ -3133,6 +3168,7 @@ function openMyShopModal() {
     (x.sellerUsername && currentUser.username && x.sellerUsername.toLowerCase() === currentUser.username.toLowerCase())
   ); 
   
+const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
   content.innerHTML = `<div class="space-y-4">
 <div class="flex items-center justify-between border-b b-ig pb-3">
 <div class="flex items-center gap-3">
@@ -3140,21 +3176,20 @@ function openMyShopModal() {
 <div><h3 class="text-base font-extrabold t1 leading-snug">${shop.name}</h3><p class="text-xs t2 mt-0.5">${shop.slogan || ''}</p><div class="text-[10px] t2 mt-0.5"><i class="fa-solid fa-location-dot" style="color:#f59e0b"></i> ${regionName}</div></div>
 </div>
 <div class="flex flex-col items-end gap-1.5">
-<span class="px-3 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5" style="${isVerified ? 'background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)' : 'background:rgba(245,158,11,.15);color:#f59e0b;border-color:rgba(245,158,11,.4)'}"><i class="fa-solid ${isVerified ? 'fa-circle-check' : 'fa-hourglass-half'}"></i> ${isVerified ? t('Подтвержден') : t('На проверке')}</span>
-<button onclick="openCreateShopModal()" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border b-ig t1"><i class="fa-solid fa-gear"></i> ${t('Редактировать магазин')}</button>
+<span class="px-3 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5" style="${isVerified ? 'background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)' : 'background:rgba(245,158,11,.15);color:#f59e0b;border-color:rgba(245,158,11,.4)'}"><i class="fa-solid ${isVerified ? 'fa-circle-check' : 'fa-hourglass-half'}"></i> ${isVerified ? (isTr ? 'Onaylı' : 'Подтвержден') : (isTr ? 'İnceleniyor' : 'На проверке')}</span>
+<button onclick="openCreateShopModal()" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border b-ig t1"><i class="fa-solid fa-gear"></i> ${isTr ? 'Mağazayı Düzenle' : 'Редактировать магазин'}</button>
 </div>
 </div>
 
 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-  <button onclick="openComboBuilder()" class="w-full py-2.5 px-2 rounded-xl text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition" style="background:linear-gradient(45deg,#f97316,#ef4444)"><i class="fa-solid fa-fire"></i> ${t('Создать комбо')}</button>
-  <button onclick="closeModal('modal-my-shop'); openShopShowcase(currentUser.uid);" class="w-full py-2.5 px-2 rounded-xl text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition" style="background:linear-gradient(45deg,#dc2626,#ef4444)"><i class="fa-solid fa-tags"></i> ${t('Скидки витрины')}</button>
-  <button onclick="closeModal('modal-my-shop'); openCreateAdModal();" class="col-span-2 sm:col-span-1 w-full py-2.5 px-2 rounded-xl text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition" style="background:linear-gradient(45deg,#10b981,#14b8a6)"><i class="fa-solid fa-plus"></i> ${t('Добавить товар')}</button>
+  <button onclick="openComboBuilder()" class="w-full py-2.5 px-2 rounded-xl text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition" style="background:linear-gradient(45deg,#f97316,#ef4444)"><i class="fa-solid fa-fire"></i> ${isTr ? 'Kombo Oluştur' : 'Создать комбо'}</button>
+  <button onclick="closeModal('modal-my-shop'); openShopShowcase(currentUser.uid);" class="w-full py-2.5 px-2 rounded-xl text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition" style="background:linear-gradient(45deg,#dc2626,#ef4444)"><i class="fa-solid fa-tags"></i> ${isTr ? 'Vitrin İndirimleri' : 'Скидки витрины'}</button>
+  <button onclick="closeModal('modal-my-shop'); openCreateAdModal();" class="col-span-2 sm:col-span-1 w-full py-2.5 px-2 rounded-xl text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition" style="background:linear-gradient(45deg,#10b981,#14b8a6)"><i class="fa-solid fa-plus"></i> ${isTr ? 'Ürün Ekle' : 'Добавить товар'}</button>
 </div>
 
 ${myCombos.length > 0 ? `<div class="p-4 rounded-2xl border space-y-2" style="border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.06)">
-<h4 class="font-extrabold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-fire" style="color:#f97316"></i> ${t('Мои акции')} (${myCombos.length})</h4>
-${myCombos.map(x => `<div class="bg-field p-2.5 rounded-xl border b-ig flex items-center justify-between gap-2"><div class="min-w-0"><div id="myshop-combo-title-${x.id}" class="font-bold t1 text-xs truncate">${x.title}</div><div class="text-[10px] t2">${x.items.length} ${t('объявл.')} • ${t('Цена акции:')} <b style="color:#f97316">$${Number(x.price).toFixed(2)}</b></div></div><div class="flex gap-1.5 shrink-0"><button onclick="openComboBuilder(null,'${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold border" style="color:#f97316;border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.12)"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteComboWithConfirm('${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold" style="color:#ed4956;background:rgba(237,73,86,.12)"><i class="fa-solid fa-trash"></i></button></div></div>`).join('')}
-
+<h4 class="font-extrabold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-fire" style="color:#f97316"></i> ${isTr ? 'Kampanyalarım' : 'Мои акции'} (${myCombos.length})</h4>
+${myCombos.map(x => `<div class="bg-field p-2.5 rounded-xl border b-ig flex items-center justify-between gap-2"><div class="min-w-0"><div id="myshop-combo-title-${x.id}" class="font-bold t1 text-xs truncate">${x.title}</div><div class="text-[10px] t2">${x.items.length} ${isTr ? 'ilan' : 'объявл.'} • ${isTr ? 'Kampanya Fiyatı:' : 'Цена акции:'} <b style="color:#f97316">$${Number(x.price).toFixed(2)}</b></div></div><div class="flex gap-1.5 shrink-0"><button onclick="openComboBuilder(null,'${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold border" style="color:#f97316;border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.12)"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteComboWithConfirm('${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold" style="color:#ed4956;background:rgba(237,73,86,.12)"><i class="fa-solid fa-trash"></i></button></div></div>`).join('')}
 </div>` : ''}
 
 ${(() => {
@@ -3167,34 +3202,34 @@ ${(() => {
   return `
   <div class="p-3.5 rounded-2xl bg-field border b-ig space-y-2">
     <div class="flex items-center justify-between text-xs">
-      <span class="font-bold t1 flex items-center gap-1.5"><i class="fa-solid fa-boxes-stacked" style="color:${barColor}"></i> ${t('Заполненность магазина')}</span>
+      <span class="font-bold t1 flex items-center gap-1.5"><i class="fa-solid fa-boxes-stacked" style="color:${barColor}"></i> ${isTr ? 'Mağaza İlan Kapasitesi' : 'Заполненность магазина'}</span>
       <span class="font-mono font-extrabold t1">${cur} / ${max} <span class="t2 font-normal text-[10px]">(${percent}%)</span></span>
     </div>
     <div class="w-full h-2.5 rounded-full bg-black/40 border b-ig overflow-hidden p-0.5">
       <div class="h-full rounded-full transition-all duration-300" style="width:${percent}%; background:${barColor}"></div>
     </div>
     <div class="flex items-center justify-between text-[10px] pt-0.5">
-      <span class="t2">${left === 0 ? `<b style="color:#ef4444">${t('Лимит исчерпан')}</b>` : `${t('Осталось мест')}: <b class="t1">${left}</b>`}</span>
+      <span class="t2">${left === 0 ? `<b style="color:#ef4444">${isTr ? 'Limit doldu' : 'Лимит исчерпан'}</b>` : `${isTr ? 'Kalan yer' : 'Осталось мест'}: <b class="t1">${left}</b>`}</span>
       <span></span>
     </div>
   </div>`;
 })()}
 
 <div class="p-4 rounded-2xl bg-field border b-ig space-y-3">
-<h4 class="font-extrabold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-list-check" style="color:#9333ea"></i> ${t('Личные категории магазина')}</h4>
-<div class="flex gap-2"><input type="text" id="new-shop-cat-input" placeholder="${t('Например: Запчасти или Чехлы')}" class="ig-input flex-1 px-3 py-2 text-xs"><button onclick="addShopCustomCategory()" class="px-3 py-2 text-white font-bold text-xs rounded-lg shrink-0" style="background:#9333ea"><i class="fa-solid fa-plus"></i> ${t('Добавить')}</button></div>
-<div class="flex flex-wrap gap-1.5 pt-1">${cats.length === 0 ? `<div class="text-[11px] t2">${t('Собственных категорий пока нет')}</div>` : cats.map((cat, idx) => `<span class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border" style="background:rgba(147,51,234,.12);color:#c084fc;border-color:rgba(147,51,234,.35)"><span>${cat}</span><button onclick="removeShopCustomCategory(${idx})" style="color:#ed4956"><i class="fa-solid fa-xmark"></i></button></span>`).join('')}</div>
+<h4 class="font-extrabold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-list-check" style="color:#9333ea"></i> ${isTr ? 'Mağaza Özel Kategorileri' : 'Личные категории магазина'}</h4>
+<div class="flex gap-2"><input type="text" id="new-shop-cat-input" placeholder="${isTr ? 'Örnek: Yedek Parça veya Kılıf' : 'Например: Запчасти или Чехлы'}" class="ig-input flex-1 px-3 py-2 text-xs"><button onclick="addShopCustomCategory()" class="px-3 py-2 text-white font-bold text-xs rounded-lg shrink-0" style="background:#9333ea"><i class="fa-solid fa-plus"></i> ${isTr ? 'Ekle' : 'Добавить'}</button></div>
+<div class="flex flex-wrap gap-1.5 pt-1">${cats.length === 0 ? `<div class="text-[11px] t2">${isTr ? 'Henüz özel kategori eklenmedi' : 'Собственных категорий пока нет'}</div>` : cats.map((cat, idx) => `<span class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border" style="background:rgba(147,51,234,.12);color:#c084fc;border-color:rgba(147,51,234,.35)"><span>${cat}</span><button onclick="removeShopCustomCategory(${idx})" style="color:#ed4956"><i class="fa-solid fa-xmark"></i></button></span>`).join('')}</div>
 </div>
 
 <div class="p-4 rounded-2xl border space-y-3" style="border-color:rgba(147,51,234,.3);background:rgba(147,51,234,.06)">
-<h4 class="font-extrabold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-database" style="color:#f59e0b"></i> ${t('Бэкап магазина (JSON)')}</h4>
-<div class="grid grid-cols-2 gap-2"><button onclick="exportShopDatabaseJSON()" class="py-2.5 px-3 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-1.5" style="background:#9333ea"><i class="fa-solid fa-download"></i> ${t('Экспорт')}</button><label class="py-2.5 px-3 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer" style="background:#4f46e5"><i class="fa-solid fa-upload"></i> ${t('Импорт')}<input type="file" accept=".json" onchange="importShopDatabaseJSON(event)" class="hidden"></label></div>
+<h4 class="font-extrabold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-database" style="color:#f59e0b"></i> ${isTr ? 'Mağaza Yedeği (JSON)' : 'Бэкап магазина (JSON)'}</h4>
+<div class="grid grid-cols-2 gap-2"><button onclick="exportShopDatabaseJSON()" class="py-2.5 px-3 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-1.5" style="background:#9333ea"><i class="fa-solid fa-download"></i> ${isTr ? 'Dışa Aktar' : 'Экспорт'}</button><label class="py-2.5 px-3 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer" style="background:#4f46e5"><i class="fa-solid fa-upload"></i> ${isTr ? 'İçe Aktar' : 'Импорт'}<input type="file" accept=".json" onchange="importShopDatabaseJSON(event)" class="hidden"></label></div>
 </div>
 
 <div class="space-y-2 pt-2 border-t b-ig">
-<h4 class="font-bold t1 text-xs">${t('Товары Вашего магазина:')}</h4>
+<h4 class="font-bold t1 text-xs">${isTr ? 'Mağazanızın Ürünleri:' : 'Товары Вашего магазина:'}</h4>
 <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
-${shopAds.length === 0 ? `<div class="text-center py-4 t2">${t('Товаров пока нет — нажмите «Добавить товар»')}</div>` : shopAds.map(a => `
+${shopAds.length === 0 ? `<div class="text-center py-4 t2">${isTr ? 'Henüz ürün yok — «Ürün Ekle» butonuna tıklayın' : 'Товаров пока нет — нажмите «Добавить товар»'}</div>` : shopAds.map(a => `
   <div class="bg-field p-2.5 rounded-xl border b-ig flex flex-col gap-2">
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 min-w-0">
@@ -3206,34 +3241,34 @@ ${shopAds.length === 0 ? `<div class="text-center py-4 t2">${t('Товаров �
 		</div>
       <div class="flex items-center gap-1 shrink-0">
         ${a.storeCategory ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(147,51,234,.15);color:#c084fc">${a.storeCategory}</span>` : ''}
-        ${a.status === 'SOLD' ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(16,185,129,.15);color:#10b981">${t('Продано')}</span>` : ''}
+        ${a.status === 'SOLD' ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(16,185,129,.15);color:#10b981">${isTr ? 'Satıldı' : 'Продано'}</span>` : ''}
       </div>
     </div>
     <div class="grid grid-cols-3 sm:grid-cols-6 gap-1 pt-1.5 border-t b-ig">
-      <button onclick="bumpAdToTop('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.3)" title="${t('В топ')}">
-        <i class="fa-solid fa-rocket"></i> ${t('В топ')}
+      <button onclick="bumpAdToTop('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.3)" title="${isTr ? 'Öne Çıkar' : 'В топ'}">
+        <i class="fa-solid fa-rocket"></i> ${isTr ? 'Öne Çıkar' : 'В топ'}
       </button>
-      <button onclick="openQuickDiscountModal('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.3)" title="${t('Скидка')}">
-        <i class="fa-solid fa-percent"></i> ${t('Скидка')}
+      <button onclick="openQuickDiscountModal('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.3)" title="${isTr ? 'İndirim' : 'Скидка'}">
+        <i class="fa-solid fa-percent"></i> ${isTr ? 'İndirim' : 'Скидка'}
       </button>
-      <button onclick="openGiftForSpecificAd('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)" title="${t('Товар + Подарок')}">
-        <i class="fa-solid fa-gift"></i> ${t('+Подарок')}
+      <button onclick="openGiftForSpecificAd('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)" title="${isTr ? 'Ürün + Hediye' : 'Товар + Подарок'}">
+        <i class="fa-solid fa-gift"></i> ${isTr ? '+Hediye' : '+Подарок'}
       </button>
-      <button onclick="openComboBuilder('${currentUser.uid}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(249,115,22,.12);color:#f97316;border-color:rgba(249,115,22,.3)" title="${t('В комбо')}">
-        <i class="fa-solid fa-fire"></i> ${t('В комбо')}
+      <button onclick="openComboBuilder('${currentUser.uid}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(249,115,22,.12);color:#f97316;border-color:rgba(249,115,22,.3)" title="${isTr ? 'Komboya Ekle' : 'В комбо'}">
+        <i class="fa-solid fa-fire"></i> ${isTr ? 'Komboya Ekle' : 'В комбо'}
       </button>
-      <button onclick="startShopAuction('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(147,51,234,.12);color:#c084fc;border-color:rgba(147,51,234,.3)" title="${t('Аукцион')}">
-        <i class="fa-solid fa-gavel"></i> ${t('Аукцион')}
+      <button onclick="startShopAuction('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(147,51,234,.12);color:#c084fc;border-color:rgba(147,51,234,.3)" title="${isTr ? 'Açık Artırma' : 'Аукцион'}">
+        <i class="fa-solid fa-gavel"></i> ${isTr ? 'Açık Artırma' : 'Аукцион'}
       </button>
-      <button onclick="openEditAdModal('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border b-ig t2 hover:bg-field flex items-center justify-center gap-1 transition active:scale-95" title="${t('Редактировать')}">
-        <i class="fa-solid fa-pen"></i> ${t('Изменить')}
+      <button onclick="openEditAdModal('${a.id}')" class="py-1 px-1 rounded-lg text-[10px] font-bold border b-ig t2 hover:bg-field flex items-center justify-center gap-1 transition active:scale-95" title="${isTr ? 'Düzenle' : 'Редактировать'}">
+        <i class="fa-solid fa-pen"></i> ${isTr ? 'Düzenle' : 'Изменить'}
       </button>
     </div>
   </div>
 `).join('')}
 </div>
 </div>
-</div>`; 
+</div>`;
 openModal('modal-my-shop'); 
 
   if (currentLang === 'tr' && typeof translateDynamic === 'function') {
@@ -3698,15 +3733,15 @@ function openComboDetail(comboId) {
 const isTr = currentLang === 'tr';
   const regionName = t(REGION_NAMES[v.region] || v.region || 'Türkiye');
 
-  const waMsg = isTr
-    ? `Merhaba!\n*Avita Turk* üzerindeki özel kampanya setini sipariş etmek istiyorum:\n🔥 *${c.title}* (Kod: ${c.id})\n💰 *Fiyat:* $${Number(c.price).toFixed(2)}\n👤 *Alıcı:* ${currentUser ? (currentUser.kunya || currentUser.username) : 'Ziyaretçi'}`
-    : `Здравствуйте!\nХочу заказать комбо-набор на *Avita Turk*:\n🔥 *${c.title}* (ID: ${c.id})\n💰 *Цена:* $${Number(c.price).toFixed(2)}\n👤 *Покупатель:* ${currentUser ? (currentUser.kunya || currentUser.username) : 'Гость'}`;
+const waMsg = isTr
+    ? `Merhaba!\n*Avito Türk* üzerindeki özel kampanya setini sipariş etmek istiyorum:\n🔥 *${c.title}* (Kod: ${c.id})\n💰 *Fiyat:* $${Number(c.price).toFixed(2)}\n👤 *Alıcı:* ${currentUser ? (currentUser.kunya || currentUser.username) : 'Ziyaretçi'}`
+    : `Здравствуйте!\nХочу заказать комбо-набор на *Avito Türk*:\n🔥 *${c.title}* (ID: ${c.id})\n💰 *Цена:* $${Number(c.price).toFixed(2)}\n👤 *Покупатель:* ${currentUser ? (currentUser.kunya || currentUser.username) : 'Гость'}`;
 	
   content.innerHTML = `<div class="grid md:grid-cols-2 h-full max-h-[90vh]">
 <div class="relative bg-black flex items-center justify-center overflow-hidden h-full min-h-[320px] max-h-[46vh] md:max-h-[90vh] select-none" ontouchstart="handleTouchSwipeStart(event)" ontouchend="handleTouchSwipeEnd(event, (dir) => changeDetailPhoto('${c.id}', dir))">
 <div id="detail-bg-blur" class="absolute inset-0 bg-cover bg-center blur-lg opacity-30 scale-110" style="background-image:url('${imgs[0]}')"></div>
 <img id="detail-main-img" src="${imgs[0]}" class="relative w-full h-full max-h-[46vh] md:max-h-[90vh] object-contain z-[1] cursor-pointer" onclick="openFullscreenViewer(this.src, '${c.id}')">
-<span class="absolute top-3 left-3 z-10 px-3 py-1 rounded-lg text-xs font-extrabold text-white flex items-center gap-1.5" style="background:linear-gradient(45deg,#f97316,#ef4444)"><i class="fa-solid fa-fire"></i> ${t('АКЦИЯ')} • ${v.comboItems.length}</span>
+<span class="absolute top-3 left-3 z-10 px-3 py-1 rounded-lg text-xs font-extrabold text-white flex items-center gap-1.5" style="background:linear-gradient(45deg,#f97316,#ef4444)"><i class="fa-solid fa-fire"></i> ${isTr ? 'KAMPANYA' : 'АКЦИЯ'} • ${v.comboItems.length}</span>
 ${imgs.length > 1 ? `<button type="button" onclick="event.stopPropagation(); changeDetailPhoto('${c.id}', -1, event);" class="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center shadow hover:bg-white active:scale-95 transition-transform cursor-pointer">${IGSVG.chevL()}</button><button type="button" onclick="event.stopPropagation(); changeDetailPhoto('${c.id}', 1, event);" class="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center shadow hover:bg-white active:scale-95 transition-transform cursor-pointer">${IGSVG.chevR()}</button><div id="detail-photo-counter" class="absolute bottom-3 right-3 z-10 bg-black/70 text-white px-2.5 py-1 rounded-lg text-[11px] font-mono">1 / ${imgs.length}</div>` : ''}
 
 </div>
@@ -3717,19 +3752,19 @@ ${imgs.length > 1 ? `<button type="button" onclick="event.stopPropagation(); cha
 </div>
 <h2 id="combo-detail-title" class="text-base font-bold t1">${c.title}</h2>
 <div class="p-3 rounded-xl border b-ig bg-field space-y-1">
-<div class="text-lg font-extrabold" style="color:#f97316">$${Number(c.price).toFixed(2)} <span class="t2 text-xs font-normal">${t('цена комплекта')}</span></div>
-<div class="text-xs t2">${t('По отдельности:')} <s>$${v.comboOriginalTotal.toFixed(2)}</s>${save > 0 ? ` • <b style="color:#10b981">${t('выгода')} $${save.toFixed(2)}</b>` : ''}</div>
+<div class="text-lg font-extrabold" style="color:#f97316">$${Number(c.price).toFixed(2)} <span class="t2 text-xs font-normal">${isTr ? 'paket fiyatı' : 'цена комплекта'}</span></div>
+<div class="text-xs t2">${isTr ? 'Ayrı ayrı:' : 'По отдельности:'} <s>$${v.comboOriginalTotal.toFixed(2)}</s>${save > 0 ? ` • <b style="color:#10b981">${isTr ? 'kazanç' : 'выгода'} $${save.toFixed(2)}</b>` : ''}</div>
 </div>
-<div class="space-y-2"><div class="text-xs font-bold t2 uppercase tracking-wide">${t('Состав комбо-набора:')}</div>
+<div class="space-y-2"><div class="text-xs font-bold t2 uppercase tracking-wide">${isTr ? 'Paket İçeriği:' : 'Состав комбо-набора:'}</div>
 ${v.comboItems.map((it, idx) => `<div onclick="openAdDetail('${it.id}')" class="bg-field p-2.5 rounded-xl border b-ig hover:bg-ig flex items-center gap-3 cursor-pointer"><img src="${(it.images && it.images[0]) || it.image}" class="w-11 h-11 rounded-lg object-cover border b-ig shrink-0"><div class="flex-1 min-w-0"><div id="combo-item-title-${idx}" class="font-bold t1 text-xs truncate">${it.title}</div><div class="text-[10px] t2">${it.city || ''}</div></div><div class="text-[11px] font-bold t1 shrink-0">${convertPriceAll(it.price, it.currency, it.isFree, it.isNegotiable)}</div></div>`).join('')}
 </div>
 <div class="flex gap-2 pt-2">
-<a href="https://wa.me/${(wa || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}" target="_blank" class="flex-1 py-3 rounded-lg text-white text-xs font-extrabold flex items-center justify-center gap-2" style="background:#25D366"><i class="fa-brands fa-whatsapp text-lg"></i> ${t('Заказать комплект')}</a>
-<button onclick="shareAd('${c.id}')" class="ig-btn-outline py-3 px-4" title="${t('Поделиться')}">${IGSVG.send()}</button>
+<a href="https://wa.me/${(wa || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}" target="_blank" class="flex-1 py-3 rounded-lg text-white text-xs font-extrabold flex items-center justify-center gap-2" style="background:#25D366"><i class="fa-brands fa-whatsapp text-lg"></i> ${isTr ? 'Seti WhatsApp ile Sipariş Et' : 'Заказать комплект'}</a>
+<button onclick="shareAd('${c.id}')" class="ig-btn-outline py-3 px-4" title="${isTr ? 'Paylaş' : 'Поделиться'}">${IGSVG.send()}</button>
 </div>
-${canManage ? `<div class="pt-2 border-t b-ig flex gap-2"><button onclick="openComboBuilder('${owner?.uid || ''}','${c.id}')" class="flex-1 py-2.5 rounded-lg text-xs font-semibold border b-ig" style="color:#f97316"><i class="fa-solid fa-pen-to-square"></i> ${t('Изменить акцию')}</button><button onclick="deleteComboWithConfirm('${c.id}')" class="ig-btn-danger py-2.5 px-4 text-xs"><i class="fa-solid fa-trash"></i></button></div>` : ''}
+${canManage ? `<div class="pt-2 border-t b-ig flex gap-2"><button onclick="openComboBuilder('${owner?.uid || ''}','${c.id}')" class="flex-1 py-2.5 rounded-lg text-xs font-semibold border b-ig" style="color:#f97316"><i class="fa-solid fa-pen-to-square"></i> ${isTr ? 'Kampanyayı Düzenle' : 'Изменить акцию'}</button><button onclick="deleteComboWithConfirm('${c.id}')" class="ig-btn-danger py-2.5 px-4 text-xs"><i class="fa-solid fa-trash"></i></button></div>` : ''}
 </div>
-</div>`; 
+</div>`;
   openModal('modal-ad-detail'); 
 
 if (isTr && typeof translateDynamic === 'function') {

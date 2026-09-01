@@ -564,14 +564,15 @@ function openCreateAdModal() {
     if (userBadge) userBadge.classList.add('hidden');
   }
 
-  // Фоновый запрос GPS для автоматического выставления региона
+// Фоновый запрос GPS для автоматического выставления региона
   if (navigator.geolocation && (!userCurrentCoords || !userCurrentCoords.lat)) {
     navigator.geolocation.getCurrentPosition(pos => {
       userCurrentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (byId('ad-lat')) byId('ad-lat').value = pos.coords.latitude.toFixed(6);
       if (byId('ad-lng')) byId('ad-lng').value = pos.coords.longitude.toFixed(6);
+      const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
       const sumEl = byId('ad-location-summary');
-      if (sumEl) sumEl.innerText = `Локация: GPS определена (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})`;
+      if (sumEl) sumEl.innerText = isTr ? `Konum: GPS belirlendi (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})` : `Локация: GPS определена (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})`;
     }, () => {}, { timeout: 7000 });
   }
 
@@ -916,12 +917,37 @@ if (supabaseClient) {
 function openEditAdModal(adId) {
   const ad = ads.find(a => a.id === adId);
   if (!ad) return;
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
   const isOwner = currentUser && (currentUser.username.toLowerCase() === (ad.sellerUsername || '').toLowerCase() || currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN');
   if (!isOwner) {
-    showToast('Нет прав для редактирования!', 'error');
+    showToast(isTr ? 'Düzenleme yetkiniz yok!' : 'Нет прав для редактирования!', 'error');
     return;
   }
 
+  const modalTitle = document.querySelector('#modal-edit-ad h3');
+  if (modalTitle) modalTitle.innerText = isTr ? 'İlanı Düzenle' : 'Редактирование объявления';
+
+  const tInp = byId('edit-ad-title');
+  if (tInp) tInp.placeholder = isTr ? 'İlan Başlığı *' : 'Заголовок объявления *';
+
+  const pInp = byId('edit-ad-price');
+  if (pInp) pInp.placeholder = isTr ? 'Fiyat *' : 'Цена *';
+
+  const cInp = byId('edit-ad-city');
+  if (cInp) cInp.placeholder = isTr ? 'İlçe / Mahalle *' : 'Город / Населенный пункт *';
+
+  const dInp = byId('edit-ad-desc');
+  if (dInp) dInp.placeholder = isTr ? 'Açıklama ve Varsa Kusurları *' : 'Описание и возможные изъяны *';
+
+  const phLabel = byId('edit-photos-label');
+  if (phLabel) phLabel.innerText = isTr ? 'Ürün Fotoğrafları (en fazla 6 adet) *' : 'Фотографии товара (до 6 шт.) *';
+
+  const upText = byId('edit-upload-btn-text');
+  if (upText) upText.innerText = isTr ? 'Fotoğraf Seç' : 'Выбрать фотографии';
+
+  const subBtn = byId('edit-ad-submit-btn');
+  if (subBtn) subBtn.innerText = isTr ? 'Değişiklikleri Kaydet' : 'Сохранить изменения';
+  
   const ownerContainer = byId('edit-ad-owner-container');
   const ownerSelect = byId('edit-ad-seller-username');
   if (ownerContainer && ownerSelect) {
@@ -1814,17 +1840,33 @@ function updateRegionLabel() {
 }
 
 function openRadiusMenu() {
-	const m = byId('radius-menu-overlay');
+  const m = byId('radius-menu-overlay');
   if (!m) return;
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+
+  const titleEl = m.querySelector('h3') || m.querySelector('.font-bold');
+  if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-location-crosshairs text-blue-500"></i> ${isTr ? 'Arama Yarıçapı' : 'Поиск в радиусе'}`;
+
+  [5, 15, 30, 50].forEach(r => {
+    const btn = byId(`radius-btn-${r}`) || m.querySelector(`button[onclick*="setRadiusFilter(${r})"]`);
+    if (btn) {
+      const span = btn.querySelector('span') || btn;
+      span.innerText = `${r} ${isTr ? 'km' : 'км'}`;
+    }
+    const chk = byId(`radius-check-${r}`);
+    if (chk) chk.classList.toggle('hidden', activeRadiusKm !== r);
+  });
+
+  const disableBtn = m.querySelector('button[onclick*="setRadiusFilter(0)"]');
+  if (disableBtn) {
+    disableBtn.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${isTr ? 'Yakınımda aramasını kapat' : 'Отключить поиск рядом'}`;
+  }
+
   if (!userCurrentCoords && navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       userCurrentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
     }, () => {});
   }
-  [5, 15, 30, 50].forEach(r => {
-    const chk = byId(`radius-check-${r}`);
-    if (chk) chk.classList.toggle('hidden', activeRadiusKm !== r);
-  });
   m.classList.remove('hidden');
 }
 
