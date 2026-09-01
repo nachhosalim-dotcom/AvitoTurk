@@ -468,15 +468,15 @@ function renderComboItemsList() {
     return `<label class="flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${sel ? '' : 'b-ig bg-field hover:bg-ig'}" style="${sel ? 'border-color:#f97316;background:rgba(249,115,22,.1)' : ''}"><input type="checkbox" ${sel ? 'checked' : ''} onchange="toggleComboItem('${a.id}')" class="w-4 h-4 shrink-0" style="accent-color:#f97316"><img src="${(a.images && a.images[0]) || a.image}" class="w-10 h-10 rounded-lg object-cover border b-ig shrink-0"><div class="flex-1 min-w-0"><div id="combo-item-builder-title-${a.id}" class="font-bold t1 text-xs truncate">${a.title}</div><div class="text-[10px] t2">${convertPriceAll(a.price, a.currency, a.isFree, a.isNegotiable)}</div></div>${sel ? '<i class="fa-solid fa-fire" style="color:#f97316"></i>' : ''}</label>`;
   }).join('');
 
-  if (currentLang === 'tr' && typeof translateDynamic === 'function') {
+if (typeof translateDynamic === 'function') {
     comboBuilderAds.forEach(a => {
-      translateDynamic(a.title, 'tr').then(res => {
+      translateDynamic(a.title, currentLang).then(res => {
         const el = byId(`combo-item-builder-title-${a.id}`);
         if (el) el.innerText = res;
       });
     });
   }
-}
+  }
 
 function updateComboSummary() {
   const el = byId('combo-summary');
@@ -675,14 +675,12 @@ if (layout === 'grid') {
       const liked = currentUser && (ad.likes || []).includes(currentUser.username);
 
 setTimeout(async () => {
-        if (currentLang === 'tr') {
-          const el = document.getElementById(`grid-title-${ad.id}`);
-          if (el) el.innerText = await translateDynamic(ad.title, 'tr');
-        }
+        const el = document.getElementById(`grid-title-${ad.id}`);
+        if (el) el.innerText = await translateDynamic(ad.title, currentLang);
       }, 10);
 	  
       return `<div class="bg-card rounded-2xl overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01] ${hasDisc ? 'fire-card' : 'border b-ig'}">
-  <div onclick="openAdDetail('${ad.id}')" class="relative aspect-square cursor-pointer overflow-hidden bg-black">
+	  <div onclick="openAdDetail('${ad.id}')" class="relative aspect-square cursor-pointer overflow-hidden bg-black">
     ${isCombo ? renderComboSlashCollage(ad) : `<img src="${img}" class="w-full h-full object-cover">`}
     ${hasDisc ? `
       <div class="absolute top-2 left-2 z-10 px-2 py-1 rounded-lg text-[10px] font-black text-white shadow-lg flex items-center gap-1" style="background:linear-gradient(45deg,#ef4444,#b91c1c)">
@@ -716,10 +714,15 @@ setTimeout(async () => {
       const oldPr = ad.oldPrice || (isCombo ? ad.comboOriginalTotal : null);
       const saveAmount = oldPr ? (oldPr - ad.price) : 0;
       const isFav = favorites.includes(ad.id);
-      const liked = currentUser && (ad.likes || []).includes(currentUser.username);
+const liked = currentUser && (ad.likes || []).includes(currentUser.username);
+
+      setTimeout(async () => {
+        const lEl = document.getElementById(`list-title-${ad.id}`);
+        if (lEl) lEl.innerText = await translateDynamic(ad.title, currentLang);
+      }, 10);
 
       return `<div class="ig-card p-3 rounded-2xl flex flex-col justify-between gap-2.5 transition-all hover:scale-[1.01] ${hasDisc ? 'fire-card' : 'b-ig'}">
-  <div onclick="openAdDetail('${ad.id}')" class="flex gap-3 cursor-pointer">
+	  <div onclick="openAdDetail('${ad.id}')" class="flex gap-3 cursor-pointer">
     <div class="relative w-24 h-24 rounded-xl overflow-hidden bg-black shrink-0">
       ${isCombo ? renderComboSlashCollage(ad) : `<img src="${img}" class="w-full h-full object-cover">`}
       ${hasDisc ? `<span class="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-black text-white shadow" style="background:#ef4444">${isCombo ? 'КОМБО' : '-' + discPercent + '%'}</span>` : ''}
@@ -764,14 +767,10 @@ setTimeout(async () => {
       const regionName = t(REGION_NAMES[ad.region] || ad.region || 'Сирия');
 
 setTimeout(async () => {
-        if (currentLang === 'tr') {
-          const tEl = document.getElementById(`feed-title-${ad.id}`);
-          const dEl = document.getElementById(`feed-desc-${ad.id}`);
-          const lEl = document.getElementById(`list-title-${ad.id}`);
-          if (tEl) tEl.innerText = await translateDynamic(ad.title, 'tr');
-          if (dEl && ad.desc) dEl.innerText = await translateDynamic(ad.desc, 'tr');
-          if (lEl) lEl.innerText = await translateDynamic(ad.title, 'tr');
-        }
+        const tEl = document.getElementById(`feed-title-${ad.id}`);
+        const dEl = document.getElementById(`feed-desc-${ad.id}`);
+        if (tEl) tEl.innerText = await translateDynamic(ad.title, currentLang);
+        if (dEl && ad.desc) dEl.innerText = await translateDynamic(ad.desc, currentLang);
       }, 10);
 	  
       const hasDiscount = !!(ad.oldPrice && ad.oldPrice > ad.price);
@@ -1540,23 +1539,21 @@ ${!isRealOwner && !ad.isFree ? `
 
   openModal('modal-ad-detail');
   
-  setTimeout(async () => {
+setTimeout(async () => {
     initDetailMap(ad.lat || 33.5138, ad.lng || 36.2765);
     const titleEl = byId('detail-ad-title');
     const descEl = byId('detail-ad-desc');
     
-if (currentLang === 'tr') {
-      if (titleEl && ad.title) {
-        const transTitle = await translateDynamic(ad.title, 'tr');
-        titleEl.innerText = transTitle;
-      }
-      if (descEl && ad.desc) {
-        const transDesc = await translateDynamic(ad.desc, 'tr');
-        descEl.innerText = transDesc;
-      }
+    if (titleEl && ad.title) {
+      const transTitle = await translateDynamic(ad.title, currentLang);
+      titleEl.innerText = transTitle;
+    }
+    if (descEl && ad.desc) {
+      const transDesc = await translateDynamic(ad.desc, currentLang);
+      descEl.innerText = transDesc;
     }
   }, 10);
-}
+  }
 
 let currentFullscreenAdId = null;
 
@@ -3048,36 +3045,36 @@ ${cats.length > 0 ? `<div class="flex items-center gap-1.5 overflow-x-auto pb-1 
   openModal('modal-shop-showcase'); 
   setTimeout(() => initShowcaseShopMap(shop.lat || 33.5138, shop.lng || 36.2765, shop.name), 200); 
 
-if (currentLang === 'tr' && typeof translateDynamic === 'function') {
+if (typeof translateDynamic === 'function') {
     if (shop.slogan) {
-      translateDynamic(shop.slogan, 'tr').then(res => {
+      translateDynamic(shop.slogan, currentLang).then(res => {
         const el = byId('showcase-shop-slogan');
         if (el) el.innerText = res;
       });
     }
     if (shop.desc) {
-      translateDynamic(shop.desc, 'tr').then(res => {
+      translateDynamic(shop.desc, currentLang).then(res => {
         const el = byId('showcase-shop-desc');
         if (el) el.innerText = res;
       });
     }
     list.forEach(ad => {
-      translateDynamic(ad.title, 'tr').then(tTitle => {
+      translateDynamic(ad.title, currentLang).then(tTitle => {
         const el = byId(`showcase-item-title-${ad.id}`);
         if (el) el.innerText = tTitle;
       });
     });
-    shopCombos.forEach(v => {
-      translateDynamic(v.title, 'tr').then(tTitle => {
+shopCombos.forEach(v => {
+      translateDynamic(v.title, currentLang).then(tTitle => {
         const el = byId(`showcase-combo-title-${v.id}`);
         if (el) el.innerText = tTitle;
       });
     });
   }
-  }
+}
 
-function initShowcaseShopMap(lat, lng, storeName) { 
-  const el = byId('showcase-shop-map'); 
+function initShowcaseShopMap(lat, lng, storeName) {
+	const el = byId('showcase-shop-map'); 
   if (!el || typeof L === 'undefined') return; 
   if (showcaseMap) { 
     showcaseMap.remove(); 
@@ -3271,15 +3268,15 @@ ${shopAds.length === 0 ? `<div class="text-center py-4 t2">${isTr ? 'Henüz ür�
 </div>`;
 openModal('modal-my-shop'); 
 
-  if (currentLang === 'tr' && typeof translateDynamic === 'function') {
+if (typeof translateDynamic === 'function') {
     shopAds.forEach(a => {
-      translateDynamic(a.title, 'tr').then(res => {
+      translateDynamic(a.title, currentLang).then(res => {
         const el = byId(`myshop-ad-title-${a.id}`);
         if (el) el.innerText = res;
       });
     });
-    myCombos.forEach(x => {
-      translateDynamic(x.title, 'tr').then(res => {
+myCombos.forEach(x => {
+      translateDynamic(x.title, currentLang).then(res => {
         const el = byId(`myshop-combo-title-${x.id}`);
         if (el) el.innerText = res;
       });
@@ -3288,7 +3285,7 @@ openModal('modal-my-shop');
 }
 
 async function addShopCustomCategory() {
-  if (!currentUser || !currentUser.shop) return;
+	if (!currentUser || !currentUser.shop) return;
   const input = byId('new-shop-cat-input');
   if (!input) return;
   const val = input.value.trim();
@@ -3767,13 +3764,13 @@ ${canManage ? `<div class="pt-2 border-t b-ig flex gap-2"><button onclick="openC
 </div>`;
   openModal('modal-ad-detail'); 
 
-if (isTr && typeof translateDynamic === 'function') {
-    translateDynamic(c.title, 'tr').then(tTitle => {
+if (typeof translateDynamic === 'function') {
+    translateDynamic(c.title, currentLang).then(tTitle => {
       const tEl = byId('combo-detail-title');
       if (tEl) tEl.innerText = tTitle;
     });
     v.comboItems.forEach((it, idx) => {
-      translateDynamic(it.title, 'tr').then(itTitle => {
+      translateDynamic(it.title, currentLang).then(itTitle => {
         const itEl = byId(`combo-item-title-${idx}`);
         if (itEl) itEl.innerText = itTitle;
       });

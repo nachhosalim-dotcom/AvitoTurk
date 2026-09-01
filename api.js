@@ -509,7 +509,6 @@ async function translateDynamic(text, targetLang = currentLang) {
   if (!text || typeof text !== 'string') return text;
   const clean = text.trim();
   if (!clean) return text;
-  if (targetLang === 'ru') return clean;
 
   const cacheKey = `${targetLang}_${clean}`;
   if (TRANSLATE_CACHE[cacheKey]) return TRANSLATE_CACHE[cacheKey];
@@ -524,7 +523,7 @@ async function translateDynamic(text, targetLang = currentLang) {
     'договорная': 'pazarlıklı',
     'бесплатно': 'ücretsiz'
   };
-  if (quickWords[clean.toLowerCase()]) {
+  if (targetLang === 'tr' && quickWords[clean.toLowerCase()]) {
     const res = quickWords[clean.toLowerCase()];
     TRANSLATE_CACHE[cacheKey] = res;
     return res;
@@ -532,7 +531,7 @@ async function translateDynamic(text, targetLang = currentLang) {
 
   // 2. Онлайн-переводчик Google
   try {
-    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=tr&dt=t&q=${encodeURIComponent(clean)}`);
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(clean)}`);
     if (res.ok) {
       const data = await res.json();
       if (data && data[0]) {
@@ -547,7 +546,8 @@ async function translateDynamic(text, targetLang = currentLang) {
 
   // 3. Резервный переводчик MyMemory
   try {
-    const res2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=ru|tr`);
+    const sourceLang = targetLang === 'tr' ? 'ru' : 'tr';
+    const res2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${sourceLang}|${targetLang}`);
     if (res2.ok) {
       const data2 = await res2.json();
       if (data2?.responseData?.translatedText) {

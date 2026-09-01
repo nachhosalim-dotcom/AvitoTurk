@@ -1539,7 +1539,8 @@ document.documentElement.lang = 'tr';
 // Показываем спиннер вместо черного экрана пока грузится кэш
 const grid = byId('listings-view');
 if (grid && ads.length === 0) {
-    grid.innerHTML = '<div class="col-span-full py-20 text-center t2"><i class="fa-solid fa-spinner fa-spin text-4xl mb-3 block opacity-50"></i>Yükleniyor...</div>';
+    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+    grid.innerHTML = `<div class="col-span-full py-20 text-center t2"><i class="fa-solid fa-spinner fa-spin text-4xl mb-3 block opacity-50"></i>${isTr ? 'Yükleniyor...' : 'Загрузка...'}</div>`;
 }
 
 // Ждем загрузки кэша из IndexedDB
@@ -1741,10 +1742,10 @@ async function renderSearchSuggestions(query) {
     if (listMobile) listMobile.classList.add('hidden');
     return;
   }
-  const itemsHtml = await Promise.all(matches.map(async a => {
+const itemsHtml = await Promise.all(matches.map(async a => {
     let displayTitle = a.title;
-    if (isTr && typeof translateDynamic === 'function') {
-      displayTitle = await translateDynamic(a.title, 'tr');
+    if (typeof translateDynamic === 'function') {
+      displayTitle = await translateDynamic(a.title, currentLang);
     }
     const catObj = categories.find(c => c.id === a.category);
     const catLabel = catObj ? t(catObj.name) : '';
