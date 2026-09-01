@@ -909,9 +909,22 @@ const isTr = lang === 'tr';
   const shopDescInp = byId('shop-desc');
   if (shopDescInp) shopDescInp.placeholder = t('shop_desc_ph');
 
-  // Поиск
+// Поиск
   const sDesk = byId('search-input-desktop');
   if (sDesk) sDesk.placeholder = t('search');
   const sMob = byId('search-input');
   if (sMob) sMob.placeholder = t('search');
+
+  // Бегущая строка
+  const marqueeDesktop = byId('desktop-marquee-text');
+  const marqueeMobile = byId('mobile-marquee-text');
+  const defaultMarqueeTr = "🔥 Avito Türk'e Hoş Geldiniz! • 🇹🇷 Türkiye'nin Güvenilir Seri İlan Platformu • 💰 Güncel Döviz Kurları • 🚀 Mağazanızı Açın ve Hızlı Satın • 🔍 Araç, Emlak ve İkinci El Ürünleri Keşfedin";
+  const defaultMarqueeRu = "🔥 Добро пожаловать на Avito Türk! • 🇹🇷 Лучшая доска объявлений Турции • 💰 Курсы валют обновляются автоматически • 🚀 Создавайте магазины и продавайте быстрее • 🔍 Ищите авто, товары и недвижимость";
+  
+  if (marqueeDesktop && !MARQUEE_SETTINGS.text) marqueeDesktop.innerText = isTr ? defaultMarqueeTr : defaultMarqueeRu;
+  if (marqueeMobile && !MARQUEE_SETTINGS.text) marqueeMobile.innerText = isTr ? defaultMarqueeTr : defaultMarqueeRu;
+
+  // Футер
+  const devLbl = byId('ft-dev-label');
+  if (devLbl) devLbl.innerText = isTr ? 'Geliştirici:' : 'Разработчик:';
 }

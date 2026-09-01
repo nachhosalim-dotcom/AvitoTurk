@@ -83,7 +83,18 @@ function getSellerKunya(ad) { if (!ad) return ''; const s = users.find(u => u.us
 function getSellerAvatar(ad) { if (!ad) return null; const s = users.find(u => u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase()); return s?.avatar || null; }
 function getSellerVerified(ad) { if (ad && ad.isCombo && typeof ad.verified === 'boolean') return ad.verified; const s = users.find(u => u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase()); return !!(s && (s.verifiedShop || (s.shop && s.shop.isVerified))); }
 function getCategoryName(catId) { const c = categories.find(x => x.id === catId); return c ? c.name : 'Прочее'; }
-function timeAgo(ts) { if (!ts) return ''; const m = Math.floor((Date.now() - ts) / 60000); if (m < 1) return 'только что'; if (m < 60) return m + ' мин'; const h = Math.floor(m / 60); if (h < 24) return h + ' ч'; const d = Math.floor(h / 24); if (d < 7) return d + ' дн'; return new Date(ts).toLocaleDateString(); }
+function timeAgo(ts) { 
+  if (!ts) return ''; 
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  const m = Math.floor((Date.now() - ts) / 60000); 
+  if (m < 1) return isTr ? 'az önce' : 'только что'; 
+  if (m < 60) return m + (isTr ? ' dk' : ' мин'); 
+  const h = Math.floor(m / 60); 
+  if (h < 24) return h + (isTr ? ' sa' : ' ч'); 
+  const d = Math.floor(h / 24); 
+  if (d < 7) return d + (isTr ? ' gün' : ' дн'); 
+  return new Date(ts).toLocaleDateString(); 
+}
 function adToUSD(a) { let p = (a.isFree || !a.price) ? 0 : a.price; if (a.currency === 'SYP') p = p / EXCHANGE_RATES.SYP; if (a.currency === 'TRY') p = p / EXCHANGE_RATES.TRY; return p; }
 
 function convertPriceAll(amount, fromCurr, isFree, isNegotiable) {
@@ -812,10 +823,10 @@ ${hasDiscount ? `
     <div class="text-xs font-black" style="color:#10b981">+$${saveAmount.toFixed(2)}</div>
   </div>
 </div>` : ''}
-<div class="px-3.5 pt-2 text-sm font-semibold t1">${likesCount > 0 ? `${t('Нравится:')} ${likesCount}` : t('Будьте первым, кому понравилось')}</div>
-${ad.isCombo ? `<div class="px-3.5 pt-1 text-sm font-semibold t1">💥 Цена по акции: <span style="color:#f97316">$${Number(ad.price).toFixed(2)}</span> <s class="t2 font-normal">$${ad.comboOriginalTotal.toFixed(2)}</s>${ad.comboOriginalTotal > ad.price ? ` <span style="color:#10b981">выгода $${(ad.comboOriginalTotal - ad.price).toFixed(2)}</span>` : ''}</div>` : ''}
+<div class="px-3.5 pt-2 text-sm font-semibold t1">${likesCount > 0 ? `${currentLang === 'tr' ? 'Beğeniler:' : 'Нравится:'} ${likesCount}` : (currentLang === 'tr' ? 'İlk beğenen siz olun' : 'Будьте первым, кому понравилось')}</div>
+${ad.isCombo ? `<div class="px-3.5 pt-1 text-sm font-semibold t1">💥 ${currentLang === 'tr' ? 'Kampanya Fiyatı:' : 'Цена по акции:'} <span style="color:#f97316">$${Number(ad.price).toFixed(2)}</span> <s class="t2 font-normal">$${ad.comboOriginalTotal.toFixed(2)}</s>${ad.comboOriginalTotal > ad.price ? ` <span style="color:#10b981">${currentLang === 'tr' ? 'kazanç' : 'выгода'} $${(ad.comboOriginalTotal - ad.price).toFixed(2)}</span>` : ''}</div>` : ''}
 <div class="px-3.5 pt-1 text-sm t1 leading-snug"><span class="font-semibold">${kunya}</span> <span id="feed-title-${ad.id}" class="font-semibold">${ad.title}</span> <span id="feed-desc-${ad.id}" class="t2 line-clamp-2">${ad.desc || ''}</span> <button onclick="openAdDetail('${ad.id}')" class="t2">… ${currentLang === 'tr' ? 'devamı' : 'ещё'}</button></div>
-<div class="px-3.5 pt-1 text-sm t2 cursor-pointer" onclick="openAdDetail('${ad.id}')">${qc > 0 ? `${t('Посмотреть очередь')}: ${qc}` : t('Очередь свободна')}</div>
+<div class="px-3.5 pt-1 text-sm t2 cursor-pointer" onclick="openAdDetail('${ad.id}')">${qc > 0 ? `${currentLang === 'tr' ? 'Sırayı Gör:' : 'Посмотреть очередь:'} ${qc}` : (currentLang === 'tr' ? 'Sırada kimse yok' : 'Очередь свободна')}</div>
 <div class="px-3.5 pt-1 flex items-center justify-between text-[10px] t2">
   <span class="uppercase tracking-wide">${timeAgo(ad.createdAt)} • 👁 ${viewsCount}</span>
   ${(ad.status === 'EXPIRED' || (Date.now() - (ad.createdAt || 0) > 30 * 24 * 60 * 60 * 1000)) ? `
