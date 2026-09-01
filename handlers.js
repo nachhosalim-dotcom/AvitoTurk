@@ -1768,6 +1768,75 @@ function deleteAdWithConfirm(adId) {
   });
 }
 
+function toggleRegionMenu() {
+  const m = byId('region-menu-overlay');
+  const list = byId('region-list-container');
+  if (!m || !list) return;
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  const curReg = byId('region-filter')?.value || 'ALL';
+  
+  let html = `<button onclick="selectRegionFilter('ALL')" class="w-full text-left p-3 rounded-xl ig-hover t1 text-sm font-semibold flex justify-between"><span>${isTr ? 'Tüm İller (Türkiye)' : 'Все регионы (Турция)'}</span> ${curReg === 'ALL' ? '<i class="fa-solid fa-check text-blue-500"></i>' : ''}</button>`;
+  
+  Object.keys(REGION_NAMES).forEach(code => {
+    const name = REGION_NAMES[code];
+    html += `<button onclick="selectRegionFilter('${code}')" class="w-full text-left p-3 rounded-xl ig-hover t1 text-sm font-semibold flex justify-between"><span>${name}</span> ${curReg === code ? '<i class="fa-solid fa-check text-blue-500"></i>' : ''}</button>`;
+  });
+  
+  list.innerHTML = html;
+  m.classList.remove('hidden');
+}
+
+function closeRegionMenu() {
+  byId('region-menu-overlay')?.classList.add('hidden');
+}
+
+function selectRegionFilter(code) {
+  const sel = byId('region-filter');
+  if (sel) sel.value = code;
+  updateRegionLabel();
+  closeRegionMenu();
+  resetPageAndRender();
+}
+
+function updateRegionLabel() {
+  const regVal = byId('region-filter')?.value || 'ALL';
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  const lbl = byId('current-region-label');
+  if (lbl) {
+    lbl.innerText = regVal === 'ALL' ? (isTr ? 'Tüm İller' : 'Все регионы') : (REGION_NAMES[regVal] || regVal);
+  }
+}
+
+function openRadiusMenu() {
+  const m = byId('radius-menu-overlay');
+  if (!m) return;
+  if (!userCurrentCoords && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      userCurrentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    }, () => {});
+  }
+  [5, 15, 30, 50].forEach(r => {
+    const chk = byId(`radius-check-${r}`);
+    if (chk) chk.classList.toggle('hidden', activeRadiusKm !== r);
+  });
+  m.classList.remove('hidden');
+}
+
+function closeRadiusMenu() {
+  byId('radius-menu-overlay')?.classList.add('hidden');
+}
+
+function setRadiusFilter(km) {
+  activeRadiusKm = km;
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  const lbl = byId('near-me-label');
+  if (lbl) {
+    lbl.innerText = km > 0 ? `${km} ${isTr ? 'km' : 'км'}` : (isTr ? 'Yakınımda' : 'Рядом');
+  }
+  closeRadiusMenu();
+  resetPageAndRender();
+}
+
 function toggleSortMenu() {
   const m = byId('sort-menu-overlay');
   if (m) {

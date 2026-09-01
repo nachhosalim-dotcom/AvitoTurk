@@ -865,12 +865,36 @@ const isTr = lang === 'tr';
     regLbl.innerText = regVal === 'ALL' ? t('all_regions') : (REGION_NAMES[regVal] || t('all_regions'));
   }
 
-  const sortLbl = byId('current-sort-label');
+const sortLbl = byId('current-sort-label');
   if (sortLbl) {
-    const sortLabels = { newest: t('sort_newest'), cheapest: t('sort_cheapest'), expensive: t('sort_expensive'), popular: t('sort_popular') };
-    sortLbl.innerText = sortLabels[currentSortMode] || t('sort_newest');
+    const sortLabels = { 
+      newest: isTr ? 'En Yeniler' : 'Новые', 
+      cheapest: isTr ? 'En Ucuzlar' : 'Дешевые', 
+      expensive: isTr ? 'En Pahalılar' : 'Дорогие', 
+      popular: isTr ? 'Popülerler' : 'Популярные' 
+    };
+    sortLbl.innerText = sortLabels[currentSortMode] || (isTr ? 'En Yeniler' : 'Новые');
   }
+  
+  // Перевод элементов внутри модального меню сортировки
+  const sortTitle = byId('sort-menu-overlay')?.querySelector('.text-center');
+  if (sortTitle) sortTitle.innerText = isTr ? 'Sıralama:' : 'Сортировать по:';
+  
+  const sortBtnNew = byId('sort-check-newest')?.previousElementSibling;
+  if (sortBtnNew) sortBtnNew.innerText = isTr ? '🕒 Önce En Yeniler' : '🕒 Сначала новые';
 
+  const sortBtnCheap = byId('sort-check-cheapest')?.previousElementSibling;
+  if (sortBtnCheap) sortBtnCheap.innerText = isTr ? '💰 Önce En Ucuzlar' : '💰 Сначала дешевые';
+
+  const sortBtnExp = byId('sort-check-expensive')?.previousElementSibling;
+  if (sortBtnExp) sortBtnExp.innerText = isTr ? '💎 Önce En Pahalılar' : '💎 Сначала дорогие';
+
+  const sortBtnPop = byId('sort-check-popular')?.previousElementSibling;
+  if (sortBtnPop) sortBtnPop.innerText = isTr ? '🔥 Popülerler' : '🔥 Популярные';
+
+  const sortCloseBtn = byId('sort-menu-overlay')?.querySelector('button:last-child');
+  if (sortCloseBtn) sortCloseBtn.innerText = isTr ? 'Kapat' : 'Закрыть';
+  
   // Модалка создания объявления
   const createTitle = document.querySelector('#modal-create-ad h3');
   if (createTitle) createTitle.innerText = t('ad_create_title');

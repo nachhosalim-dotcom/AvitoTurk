@@ -838,10 +838,11 @@ ${ad.isCombo ? `<div class="px-3.5 pt-1 text-sm font-semibold t1">💥 ${current
     }).join('');
   }
 
-  if (pag) {
-    pag.innerHTML = `<button onclick="changePage(1)" ${currentPage === 1 ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${t('« Первая')}</button><button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${t('< Назад')}</button><span class="px-3 py-1.5 rounded-lg text-xs font-bold t1 bg-field border b-ig">${t('Страница')} ${currentPage} ${t('из')} ${totalPages}</span><button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${t('Вперед >')}</button><button onclick="changePage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${t('Последняя »')}</button>`;
+if (pag) {
+    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+    pag.innerHTML = `<button onclick="changePage(1)" ${currentPage === 1 ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${isTr ? '« İlk' : '« Первая'}</button><button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${isTr ? '< Geri' : '< Назад'}</button><span class="px-3 py-1.5 rounded-lg text-xs font-bold t1 bg-field border b-ig">${isTr ? 'Sayfa' : 'Страница'} ${currentPage} / ${totalPages}</span><button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${isTr ? 'İleri >' : 'Вперед >'}</button><button onclick="changePage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''} class="ig-btn-outline px-3 py-1.5 text-xs disabled:opacity-30">${isTr ? 'Son »' : 'Последняя »'}</button>`;
   }
-}
+  }
 
 function renderMyReceipts() { 
   if (!currentUser) return `<div class="text-[11px] t2">${t('Чеков пока нет — история покупок и продаж появится здесь')}</div>`; 
