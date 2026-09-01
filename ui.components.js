@@ -2556,35 +2556,42 @@ function openCreateShopModal(targetUid = null) {
     bannerText.innerText = `Режим модерации: магазин пользователя @${targetUser.username}`; 
   } else banner.classList.add('hidden'); 
   
+const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
   if (targetUser.shop) { 
-    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>Редактирование магазина</span>`; 
-    submitBtn.innerText = 'Сохранить изменения магазина'; 
+    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>${isTr ? 'Mağazayı Düzenle' : 'Редактирование магазина'}</span>`; 
+    submitBtn.innerText = isTr ? 'Değişiklikleri Kaydet' : 'Сохранить изменения магазина'; 
     byId('shop-name').value = targetUser.shop.name || ''; 
     byId('shop-slogan').value = targetUser.shop.slogan || ''; 
     byId('shop-category').value = targetUser.shop.category || 'electronics'; 
-    byId('shop-region').value = targetUser.shop.region || 'DAM'; 
+    byId('shop-region').value = targetUser.shop.region || 'IST'; 
     byId('shop-address').value = targetUser.shop.address || ''; 
     byId('shop-hours').value = targetUser.shop.hours || ''; 
     byId('shop-whatsapp').value = targetUser.shop.whatsapp || targetUser.whatsapp || ''; 
     byId('shop-desc').value = targetUser.shop.desc || ''; 
     byId('shop-logo-data').value = targetUser.shop.logo || ''; 
-    byId('shop-lat').value = targetUser.shop.lat || 33.5138; 
-    byId('shop-lng').value = targetUser.shop.lng || 36.2765; 
+    byId('shop-lat').value = targetUser.shop.lat || 41.0082; 
+    byId('shop-lng').value = targetUser.shop.lng || 28.9784; 
     if (targetUser.shop.logo) { 
       byId('shop-logo-preview-img').src = targetUser.shop.logo; 
       byId('shop-logo-preview-box').classList.remove('hidden'); 
     } 
   } else { 
-    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>Открытие нового магазина</span>`; 
-    submitBtn.innerText = 'Создать магазин'; 
+    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>${isTr ? 'Yeni Mağaza Aç' : 'Открытие нового магазина'}</span>`; 
+    submitBtn.innerText = isTr ? 'Mağaza Aç' : 'Создать магазин'; 
     ['shop-name', 'shop-slogan', 'shop-address', 'shop-hours', 'shop-desc', 'shop-logo-data'].forEach(i => byId(i).value = ''); 
     byId('shop-category').value = 'electronics'; 
-    byId('shop-region').value = 'DAM'; 
+    byId('shop-region').value = 'IST'; 
     byId('shop-whatsapp').value = targetUser.whatsapp || ''; 
-    byId('shop-lat').value = 33.5138; 
-    byId('shop-lng').value = 36.2765; 
+    byId('shop-lat').value = 41.0082; 
+    byId('shop-lng').value = 28.9784; 
     byId('shop-logo-preview-box').classList.add('hidden'); 
-  } 
+  }
+  if (byId('shop-name')) byId('shop-name').placeholder = isTr ? 'Mağaza Adı *' : 'Название магазина *';
+  if (byId('shop-slogan')) byId('shop-slogan').placeholder = isTr ? 'Slogan / Kısa Açıklama *' : 'Слоган / краткое описание *';
+  if (byId('shop-address')) byId('shop-address').placeholder = isTr ? 'Açık Adres *' : 'Точный физический адрес *';
+  if (byId('shop-hours')) byId('shop-hours').placeholder = isTr ? 'Çalışma Saatleri (örn. Cmt-Per 09:00-20:00)' : 'Часы работы (напр. Сб–Чт 09:00–20:00)';
+  if (byId('shop-whatsapp')) byId('shop-whatsapp').placeholder = isTr ? 'Mağaza WhatsApp * (+90…)' : 'WhatsApp магазина * (+90…)';
+  if (byId('shop-desc')) byId('shop-desc').placeholder = isTr ? 'Mağaza Hakkında Detaylı Bilgi *' : 'Подробная информация о магазине *';
   openModal('modal-create-shop'); 
   setTimeout(initShopCreateMap, 200); 
 }
