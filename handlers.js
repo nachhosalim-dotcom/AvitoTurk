@@ -672,9 +672,9 @@ function openCreateAdModalForUser(username) { onBehalfPreset = username; openCre
 function initCreateMap() { 
   const el = byId('create-map'); 
   if (!el || typeof L === 'undefined') return; 
-  const curLat = parseFloat(byId('ad-lat')?.value || 33.5138);
-  const curLng = parseFloat(byId('ad-lng')?.value || 36.2765);
-
+  const curLat = parseFloat(byId('ad-lat')?.value || 41.0082);
+  const curLng = parseFloat(byId('ad-lng')?.value || 28.9784);
+  
   if (createMap) {
     createMap.remove();
     createMap = null;
@@ -1220,31 +1220,31 @@ function changeLanguage(lang) {
 
 function openAuthModal() {
   const l = byId('tab-login'), r = byId('tab-register'), b = byId('auth-submit-btn');
-  if (l) l.innerText = t('Вход');
-  if (r) r.innerText = t('Регистрация');
+  if (l) l.innerText = t('login_tab');
+  if (r) r.innerText = t('register_tab');
   const isRegActive = !byId('reg-fields')?.classList.contains('hidden');
-  if (b) b.innerText = isRegActive ? t('Зарегистрироваться') : t('Войти');
+  if (b) b.innerText = isRegActive ? t('btn_register') : t('btn_login');
   
   const uInp = byId('auth-username'), pInp = byId('auth-password');
-  if (uInp) uInp.placeholder = t('Логин или WhatsApp *');
-  if (pInp) pInp.placeholder = t('Пароль *');
+  if (uInp) uInp.placeholder = t('login_ph');
+  if (pInp) pInp.placeholder = t('password_ph');
 
-const regU = byId('reg-username'), regP = byId('reg-password'), regP2 = byId('reg-password-confirm'), regK = byId('reg-kunya'), regW = byId('reg-whatsapp');
-  if (regU) regU.placeholder = currentLang === 'tr' ? 'Kullanıcı Adı *' : 'Логин *';
-  if (regP) regP.placeholder = currentLang === 'tr' ? 'Şifre (en az 6 karakter) *' : 'Пароль (мин. 6 символов) *';
-  if (regP2) regP2.placeholder = currentLang === 'tr' ? 'Şifreyi Tekrar Girin *' : 'Повторите пароль *';
-  if (regK) regK.placeholder = currentLang === 'tr' ? 'İsim / Lakap' : 'Имя / Кунья';
-  if (regW) regW.placeholder = currentLang === 'tr' ? 'WhatsApp Numarası * (+905...)' : 'WhatsApp номер * (+905...)';
+  const regU = byId('reg-username'), regP = byId('reg-password'), regP2 = byId('reg-password-confirm'), regK = byId('reg-kunya'), regW = byId('reg-whatsapp');
+  if (regU) regU.placeholder = t('reg_login_ph');
+  if (regP) regP.placeholder = t('reg_pass_ph');
+  if (regP2) regP2.placeholder = t('reg_pass2_ph');
+  if (regK) regK.placeholder = t('reg_kunya_ph');
+  if (regW) regW.placeholder = t('reg_wa_ph');
   
   const genderLabel = byId('reg-gender-label');
-  if (genderLabel) genderLabel.innerText = t('Выберите ваш пол *');
+  if (genderLabel) genderLabel.innerText = t('reg_gender_title');
   const maleLbl = byId('label-gender-male');
   const femaleLbl = byId('label-gender-female');
-  if (maleLbl) maleLbl.innerText = t('Мужчина');
-  if (femaleLbl) femaleLbl.innerText = t('Женщина 🌸');
+  if (maleLbl) maleLbl.innerText = t('gender_male');
+  if (femaleLbl) femaleLbl.innerText = t('gender_female');
 
   const remLbl = byId('auth-remember-label');
-  if (remLbl) remLbl.innerText = t('Запомнить мой вход на этом устройстве');
+  if (remLbl) remLbl.innerText = t('remember_me');
   openModal('modal-auth');
 }
 

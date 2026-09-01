@@ -677,40 +677,51 @@ async function translateDynamic(text, targetLang = currentLang) {
   if (!text || typeof text !== 'string') return text;
   const clean = text.trim();
   if (!clean) return text;
-  if (DICTIONARY[clean] && targetLang === 'tr') return DICTIONARY[clean];
-  
+  if (targetLang === 'ru') return clean;
+
   const cacheKey = `${targetLang}_${clean}`;
   if (TRANSLATE_CACHE[cacheKey]) return TRANSLATE_CACHE[cacheKey];
 
-  const isTurkishText = /[ğüşıöçĞÜŞİÖÇ]/.test(clean);
-  if (targetLang === 'tr' && isTurkishText) return clean;
-  if (targetLang === 'ru' && !isTurkishText && /[а-яА-ЯёЁ]/.test(clean)) return clean;
+  // 1. Быстрый словарь популярных слов
+  const quickWords = {
+    'телефон': 'telefon',
+    'новый': 'yeni',
+    'отличное состояние': 'mükemmel durumda',
+    'хорошее состояние': 'iyi durumda',
+    'б/у': 'ikinci el',
+    'договорная': 'pazarlıklı',
+    'бесплатно': 'ücretsiz'
+  };
+  if (quickWords[clean.toLowerCase()]) {
+    const res = quickWords[clean.toLowerCase()];
+    TRANSLATE_CACHE[cacheKey] = res;
+    return res;
+  }
 
-  const sl = (targetLang === 'tr') ? 'ru' : 'tr';
-  const tl = targetLang === 'tr' ? 'tr' : 'ru';
-  
+  // 2. Онлайн-переводчик Google
   try {
-    const googleUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(clean)}`;
-    const res = await fetch(googleUrl);
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=tr&dt=t&q=${encodeURIComponent(clean)}`);
     if (res.ok) {
       const data = await res.json();
       if (data && data[0]) {
         const result = data[0].map(x => x[0]).join('');
-        TRANSLATE_CACHE[cacheKey] = result;
-        return result;
+        if (result) {
+          TRANSLATE_CACHE[cacheKey] = result;
+          return result;
+        }
       }
     }
   } catch (e) {}
 
+  // 3. Резервный переводчик MyMemory
   try {
-    const proxyUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean.slice(0, 450))}&langpair=${sl}|${tl}`;
-    const res = await fetch(proxyUrl);
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.responseData?.translatedText && !data.responseData.translatedText.includes('QUERY LENGTH LIMIT')) {
-        const result = data.responseData.translatedText;
-        TRANSLATE_CACHE[cacheKey] = result;
-        return result;
+    const res2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=ru|tr`);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2?.responseData?.translatedText) {
+        const result2 = data2.responseData.translatedText;
+        TRANSLATE_CACHE[cacheKey] = result2;
+        return result2;
       }
     }
   } catch (e) {}
@@ -811,90 +822,96 @@ async function saveMarqueeSettings() {
 }
 
 function translateStaticUI(lang) {
-  const isTr = lang === 'tr';
+  // Навигация
   const navMap = {
-    'sb-home': 'Главная', 'sb-shops': 'Магазины', 'sb-create': 'Создать',
-    'sb-fav': 'Избранное', 'sb-profile': 'Профиль'
+    'sb-home': t('nav_home'),
+    'sb-shops': t('nav_shops'),
+    'sb-create': t('nav_create'),
+    'sb-fav': t('nav_favorites'),
+    'sb-profile': t('nav_profile')
   };
   Object.keys(navMap).forEach(id => {
     const el = byId(id)?.querySelector('.nav-label');
-    if (el) el.innerText = isTr ? (DICTIONARY[navMap[id]] || navMap[id]) : navMap[id];
+    if (el) el.innerText = navMap[id];
   });
 
+const isTr = lang === 'tr';
   const supLbl = byId('sb-support-label');
-  if (supLbl) supLbl.innerText = isTr ? (DICTIONARY['Техподдержка'] || 'Destek') : 'Техподдержка';
+  if (supLbl) supLbl.innerText = t('support');
 
+  const waSupportText = isTr 
+    ? encodeURIComponent('Merhaba! Avito Türk hakkında yardıma ihtiyacım var.')
+    : encodeURIComponent('Здравствуйте! Мне нужна помощь по сервису Avito Türk.');
+
+  const sidebarSupportLink = supLbl?.closest('a');
+  if (sidebarSupportLink) {
+    sidebarSupportLink.href = `https://wa.me/447887280238?text=${waSupportText}`;
+  }
+
+  const floatingSupportLink = document.querySelector('a[title="Destek WhatsApp"], a[aria-label="Destek WhatsApp"]');
+  if (floatingSupportLink) {
+    floatingSupportLink.href = `https://wa.me/447887280238?text=${waSupportText}`;
+  }
+  
   const thmLbl = byId('sb-theme-label');
-  if (thmLbl) thmLbl.innerText = isTr ? (DICTIONARY['Сменить тему'] || 'Temayı Değiştir') : 'Сменить тему';
+  if (thmLbl) thmLbl.innerText = t('change_theme');
 
   const nearLbl = byId('near-me-label');
-  if (nearLbl) nearLbl.innerText = activeRadiusKm > 0 ? `${activeRadiusKm} ${t('км')}` : t('Рядом');
+  if (nearLbl) nearLbl.innerText = activeRadiusKm > 0 ? `${activeRadiusKm} ${t('km')}` : t('near_me');
 
   const regLbl = byId('current-region-label');
   if (regLbl) {
     const regVal = byId('region-filter')?.value || 'ALL';
-    const rawName = regVal === 'ALL' ? 'Все регионы' : (REGION_NAMES[regVal] || 'Все регионы');
-    regLbl.innerText = isTr ? (DICTIONARY[rawName] || rawName) : rawName;
+    regLbl.innerText = regVal === 'ALL' ? t('all_regions') : (REGION_NAMES[regVal] || t('all_regions'));
   }
 
   const sortLbl = byId('current-sort-label');
   if (sortLbl) {
-    const sortLabels = { newest: 'Новые', cheapest: 'Дешевые', expensive: 'Дорогие', popular: 'Популярные' };
-    const rawSort = sortLabels[currentSortMode] || 'Новые';
-    sortLbl.innerText = isTr ? (DICTIONARY[rawSort] || rawSort) : rawSort;
+    const sortLabels = { newest: t('sort_newest'), cheapest: t('sort_cheapest'), expensive: t('sort_expensive'), popular: t('sort_popular') };
+    sortLbl.innerText = sortLabels[currentSortMode] || t('sort_newest');
   }
 
-  // Создание объявления
+  // Модалка создания объявления
   const createTitle = document.querySelector('#modal-create-ad h3');
-  if (createTitle) createTitle.innerText = t('Подача объявления');
+  if (createTitle) createTitle.innerText = t('ad_create_title');
   const adPhotoLbl = byId('ad-photos-label');
-  if (adPhotoLbl) adPhotoLbl.innerText = t('Фотографии товара (до 6 шт.) *');
+  if (adPhotoLbl) adPhotoLbl.innerText = t('ad_photos_label');
   const adUpText = byId('ad-upload-btn-text');
-  if (adUpText) adUpText.innerText = t('Выбрать фотографии');
+  if (adUpText) adUpText.innerText = t('ad_photos_btn');
   const adTitleInp = byId('ad-title');
-  if (adTitleInp) adTitleInp.placeholder = t('Заголовок объявления *');
+  if (adTitleInp) adTitleInp.placeholder = t('ad_title_ph');
   const adPriceInp = byId('ad-price');
-  if (adPriceInp) adPriceInp.placeholder = t('Цена, $ *');
+  if (adPriceInp) adPriceInp.placeholder = t('ad_price_ph');
   const adFreeLbl = byId('ad-is-free')?.parentElement?.querySelector('span');
-  if (adFreeLbl) adFreeLbl.innerText = t('Даром 🎁');
+  if (adFreeLbl) adFreeLbl.innerText = t('ad_free_label');
   const adNegLbl = byId('ad-is-negotiable')?.parentElement?.querySelector('span');
-  if (adNegLbl) adNegLbl.innerText = t('Договорная 🤝');
+  if (adNegLbl) adNegLbl.innerText = t('ad_negotiable_label');
   const adWmLbl = byId('ad-is-women-only')?.parentElement?.querySelector('span');
-  if (adWmLbl) adWmLbl.innerText = t('Для женщин 🌸');
+  if (adWmLbl) adWmLbl.innerText = t('ad_women_label');
   const adDescInp = byId('ad-desc');
-  if (adDescInp) adDescInp.placeholder = t('Описание и возможные изъяны *');
+  if (adDescInp) adDescInp.placeholder = t('ad_desc_ph');
   const adAdvBtn = byId('create-ad-advanced-fields')?.previousElementSibling?.querySelector('span');
-  if (adAdvBtn) adAdvBtn.innerHTML = `<i class="fa-solid fa-sliders text-purple-400"></i> ${t('Расширенные настройки')}`;
+  if (adAdvBtn) adAdvBtn.innerHTML = `<i class="fa-solid fa-sliders text-purple-400"></i> ${t('ad_advanced_btn')}`;
   const createSubBtn = document.querySelector('#modal-create-ad button[type="submit"]');
-  if (createSubBtn) createSubBtn.innerText = t('Опубликовать объявление');
+  if (createSubBtn) createSubBtn.innerText = t('ad_submit_btn');
 
-  // Редактирование объявления
-  const editTitle = document.querySelector('#modal-edit-ad h3');
-  if (editTitle) editTitle.innerText = t('Редактирование объявления');
-  const editTInp = byId('edit-ad-title');
-  if (editTInp) editTInp.placeholder = t('Заголовок объявления *');
-  const editPInp = byId('edit-ad-price');
-  if (editPInp) editPInp.placeholder = t('Цена *');
-  const editDInp = byId('edit-ad-desc');
-  if (editDInp) editDInp.placeholder = t('Описание и изъяны *');
-  const editSubBtn = byId('edit-ad-submit-btn');
-  if (editSubBtn) editSubBtn.innerText = t('Сохранить изменения');
+  // Модалка магазина
+  const shopNameInp = byId('shop-name');
+  if (shopNameInp) shopNameInp.placeholder = t('shop_name_ph');
+  const shopSloganInp = byId('shop-slogan');
+  if (shopSloganInp) shopSloganInp.placeholder = t('shop_slogan_ph');
+  const shopAddrInp = byId('shop-address');
+  if (shopAddrInp) shopAddrInp.placeholder = t('shop_address_ph');
+  const shopHoursInp = byId('shop-hours');
+  if (shopHoursInp) shopHoursInp.placeholder = t('shop_hours_ph');
+  const shopWaInp = byId('shop-whatsapp');
+  if (shopWaInp) shopWaInp.placeholder = t('shop_whatsapp_ph');
+  const shopDescInp = byId('shop-desc');
+  if (shopDescInp) shopDescInp.placeholder = t('shop_desc_ph');
 
-// Быстрая скидка
-  const qdTitle = byId('quick-discount-modal-title') || byId('modal-quick-discount')?.querySelector('h3');
-  if (qdTitle) qdTitle.innerHTML = `<i class="fa-solid fa-tags" style="color:#ef4444"></i> ${t('Установить скидку / Акцию')}`;
-  const qdSaveBtn = byId('quick-discount-save-btn') || byId('modal-quick-discount')?.querySelector('button[onclick="saveQuickDiscountSubmit()"]');
-  if (qdSaveBtn) qdSaveBtn.innerText = t('Применить скидку');
-  const qdRemBtn = byId('quick-discount-remove-btn') || byId('modal-quick-discount')?.querySelector('button[onclick="removeQuickDiscountSubmit()"]');
-  if (qdRemBtn) qdRemBtn.innerText = t('Отменить скидку (вернуть старую цену)');
-  
-  // Конструктор комбо
-  const cbTitleInp = byId('combo-title');
-  if (cbTitleInp) cbTitleInp.placeholder = t('Название акции (напр.: Комплект солнечной энергетики)');
-  const cbPriceInp = byId('combo-price');
-  if (cbPriceInp) cbPriceInp.placeholder = t('Специальная цена комплекта, $ *');
-  const cbItemsLbl = byId('combo-items-list')?.previousElementSibling;
-  if (cbItemsLbl) cbItemsLbl.innerText = t('Товары в комплекте (минимум 2) *');
-  const cbSaveBtn = byId('modal-combo-builder')?.querySelector('button[type="submit"]');
-  if (cbSaveBtn) cbSaveBtn.innerHTML = `<i class="fa-solid fa-fire"></i> ${t('Сохранить акцию')}`;
+  // Поиск
+  const sDesk = byId('search-input-desktop');
+  if (sDesk) sDesk.placeholder = t('search');
+  const sMob = byId('search-input');
+  if (sMob) sMob.placeholder = t('search');
 }

@@ -87,14 +87,21 @@ function timeAgo(ts) { if (!ts) return ''; const m = Math.floor((Date.now() - ts
 function adToUSD(a) { let p = (a.isFree || !a.price) ? 0 : a.price; if (a.currency === 'SYP') p = p / EXCHANGE_RATES.SYP; if (a.currency === 'TRY') p = p / EXCHANGE_RATES.TRY; return p; }
 
 function convertPriceAll(amount, fromCurr, isFree, isNegotiable) {
-  if (isNegotiable) return `<span class="font-bold" style="color:#3b82f6">${t('🤝 Договорная')}</span>`;
-  if (isFree || amount === 0) return `<span class="font-bold" style="color:#10b981">${t('🎁 ДАРОМ')}</span>`;
-  let p = amount; if (fromCurr === 'TRY') p = amount / (EXCHANGE_RATES.TRY || 47.74);
-  const tryAmount = Math.round(p * (EXCHANGE_RATES.TRY || 47.74));
+  const isTr = (typeof currentLang !== 'undefined' && currentLang === 'tr');
+  if (isNegotiable) return `<span class="font-bold" style="color:#3b82f6">${isTr ? '🤝 Pazarlıklı' : '🤝 Договорная'}</span>`;
+  if (isFree || amount === 0) return `<span class="font-bold" style="color:#10b981">${isTr ? '🎁 ÜCRETSİZ' : '🎁 ДАРОМ'}</span>`;
+  let p = amount; if (fromCurr === 'TRY') p = amount / (EXCHANGE_RATES.TRY || 38.50);
+  const tryAmount = Math.round(p * (EXCHANGE_RATES.TRY || 38.50));
   return `$${p.toFixed(2)} <span class="t2 text-[10px]">/ ${tryAmount.toLocaleString()} ₺</span>`;
 }
 
-function priceBadge(ad) { if (ad.isNegotiable) return `<span style="color:#93c5fd">${t('🤝 Договорная')}</span>`; if (ad.isFree || ad.price === 0) return `<span style="color:#6ee7b7">${t('🎁 ДАРОМ')}</span>`; let p = ad.price; if (ad.currency === 'TRY') p = ad.price / (EXCHANGE_RATES.TRY || 47.74); return '$' + p.toFixed(2); }
+function priceBadge(ad) { 
+  const isTr = (typeof currentLang !== 'undefined' && currentLang === 'tr');
+  if (ad.isNegotiable) return `<span style="color:#93c5fd">${isTr ? '🤝 Pazarlıklı' : '🤝 Договорная'}</span>`; 
+  if (ad.isFree || ad.price === 0) return `<span style="color:#6ee7b7">${isTr ? '🎁 ÜCRETSİZ' : '🎁 ДАРОМ'}</span>`; 
+  let p = ad.price; if (ad.currency === 'TRY') p = ad.price / (EXCHANGE_RATES.TRY || 38.50); 
+  return '$' + p.toFixed(2); 
+}
 
 function roundRectPath(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function igGradient(ctx, x0, y0, x1, y1) { const g = ctx.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, '#feda75'); g.addColorStop(0.25, '#fa7e1e'); g.addColorStop(0.5, '#d62976'); g.addColorStop(0.75, '#962fbf'); g.addColorStop(1, '#4f5bd5'); return g; }
@@ -1398,7 +1405,7 @@ async function openAdDetail(adId, countView = true) {
         </div>
       ` : ''}
 
-      ${(() => {
+${(() => {
         const isExpired = ad.status === 'EXPIRED' || (Date.now() - (ad.createdAt || 0) > 30 * 24 * 60 * 60 * 1000);
         const pubDate = new Date(ad.createdAt || Date.now()).toLocaleDateString();
         const expDate = new Date((ad.createdAt || Date.now()) + 30 * 24 * 60 * 60 * 1000).toLocaleDateString();
@@ -1407,13 +1414,13 @@ async function openAdDetail(adId, countView = true) {
         <div class="p-3 rounded-xl border flex items-start gap-2.5" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);color:#f87171">
           <i class="fa-solid fa-triangle-exclamation text-base shrink-0 mt-0.5"></i>
           <div class="min-w-0">
-            <div class="font-bold text-xs">${t('Неактуально • Возможно, продано')}</div>
-            <div class="text-[10px] opacity-90 mt-0.5">${t('Объявление не обновлялось более 30 дней. Товар может быть уже продан.')}</div>
+            <div class="font-bold text-xs">${currentLang === 'tr' ? 'Güncel Değil • Satılmış Olabilir' : 'Неактуально • Возможно, продано'}</div>
+            <div class="text-[10px] opacity-90 mt-0.5">${currentLang === 'tr' ? 'İlan 30 günden uzun süredir güncellenmedi. Satılmış olabilir.' : 'Объявление не обновлялось более 30 дней. Товар может быть уже продан.'}</div>
           </div>
         </div>` : ''}
         <div class="flex items-center justify-between text-[10px] t2 bg-field px-3 py-1.5 rounded-lg border b-ig">
-          <span><i class="fa-regular fa-calendar"></i> ${t('Дата публикации:')} <b class="t1">${pubDate}</b></span>
-          <span><i class="fa-regular fa-clock"></i> ${t('Действует до:')} <b class="t1">${expDate}</b></span>
+          <span><i class="fa-regular fa-calendar"></i> ${currentLang === 'tr' ? 'Yayın Tarihi:' : 'Дата публикации:'} <b class="t1">${pubDate}</b></span>
+          <span><i class="fa-regular fa-clock"></i> ${currentLang === 'tr' ? 'Bitiş Tarihi:' : 'Действует до:'} <b class="t1">${expDate}</b></span>
         </div>
         `;
       })()}
@@ -1448,31 +1455,31 @@ ${(ad.oldPrice && ad.oldPrice > ad.price) ? `
       <div class="flex items-center gap-3 text-[11px] t2 flex-wrap bg-field p-2.5 rounded-xl border b-ig shrink-0">
         <span><i class="fa-solid fa-eye"></i> ${viewsCount}</span>
         <span class="${userLiked ? 'font-bold' : ''}" style="${userLiked ? 'color:#ed4956' : ''}"><i class="fa-solid fa-heart"></i> ${likesCount}</span>
-        <span class="font-bold" style="color:#f59e0b"><i class="fa-solid fa-fire"></i> ${t('Рейтинг:')} ${rating}</span>
+        <span class="font-bold" style="color:#f59e0b"><i class="fa-solid fa-fire"></i> ${currentLang === 'tr' ? 'Puan:' : 'Рейтинг:'} ${rating}</span>
         <button onclick="toggleLikeDetail('${ad.id}')" class="ml-auto px-3 py-1.5 rounded-lg font-bold text-[11px] border ${userLiked ? '' : 'b-ig'}" style="${userLiked ? 'background:rgba(237,73,86,.15);color:#ed4956;border-color:rgba(237,73,86,.4)' : ''}">
-          <i class="fa-solid fa-heart"></i> ${userLiked ? t('Лайк поставлен') : t('Лайк')}
+          <i class="fa-solid fa-heart"></i> ${userLiked ? (currentLang === 'tr' ? 'Beğenildi' : 'Лайк поставлен') : (currentLang === 'tr' ? 'Beğen' : 'Лайк')}
         </button>
       </div>
-
+	  
       <div id="detail-map" class="h-32 rounded-xl border b-ig overflow-hidden relative z-0 bg-field shrink-0"></div>
 
-      <div class="p-3 rounded-xl border b-ig bg-field space-y-2 shrink-0">
+<div class="p-3 rounded-xl border b-ig bg-field space-y-2 shrink-0">
         <div class="flex items-center justify-between text-xs font-bold" style="color:#f59e0b">
-          <span><i class="fa-solid fa-users"></i> ${t('В очереди:')} ${queueList.length} ${t('чел.')}</span>
-          ${inQ ? `<span class="px-2.5 py-0.5 rounded-full border text-[10px]" style="background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4)">${t('Вы №')}${rank} ${t('в очереди')}</span>` : ''}
+          <span><i class="fa-solid fa-users"></i> ${currentLang === 'tr' ? 'Sırada:' : 'В очереди:'} ${queueList.length} ${currentLang === 'tr' ? 'kişi' : 'чел.'}</span>
+          ${inQ ? `<span class="px-2.5 py-0.5 rounded-full border text-[10px]" style="background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4)">${currentLang === 'tr' ? `Sıranız: No ${rank}` : `Вы №${rank} в очереди`}</span>` : ''}
         </div>
         ${currentUser ? `
           <button onclick="${inQ ? `leaveQueue('${ad.id}')` : `joinQueue('${ad.id}')`}" class="w-full py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 ${inQ ? 'ig-btn-outline' : 'ig-btn'}">
-            <i class="fa-solid ${inQ ? 'fa-user-minus' : 'fa-hand'}"></i> ${inQ ? t('Выйти из очереди') : t('Занять очередь')}
+            <i class="fa-solid ${inQ ? 'fa-user-minus' : 'fa-hand'}"></i> ${inQ ? (currentLang === 'tr' ? 'Sıradan Çık' : 'Выйти из очереди') : (currentLang === 'tr' ? 'Sıraya Gir' : 'Занять очередь')}
           </button>
         ` : ''}
       </div>
 
       <div class="shrink-0">
-        <div class="text-xs font-bold t2 uppercase tracking-wide mb-1">${t('Описание и изъяны')}</div>
+        <div class="text-xs font-bold t2 uppercase tracking-wide mb-1">${currentLang === 'tr' ? 'Açıklama ve Kusurlar' : 'Описание и изъяны'}</div>
         <p id="detail-ad-desc" class="text-xs t1 leading-relaxed bg-field p-3 rounded-xl border b-ig whitespace-pre-line">${displayDesc}</p>
       </div>
-
+	  
 ${!isRealOwner && !ad.isFree ? `
       <div class="p-2.5 rounded-xl bg-field border b-ig flex items-center gap-2 shrink-0">
         <input type="number" id="offer-price-input" placeholder="${t('Предложить цену ($)')}" class="ig-input flex-1 px-3 py-2 text-xs font-bold">
@@ -2556,10 +2563,9 @@ function openCreateShopModal(targetUid = null) {
     bannerText.innerText = `Режим модерации: магазин пользователя @${targetUser.username}`; 
   } else banner.classList.add('hidden'); 
   
-const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
-  if (targetUser.shop) { 
-    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>${isTr ? 'Mağazayı Düzenle' : 'Редактирование магазина'}</span>`; 
-    submitBtn.innerText = isTr ? 'Değişiklikleri Kaydet' : 'Сохранить изменения магазина'; 
+if (targetUser.shop) { 
+    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>${t('shop_title_edit')}</span>`; 
+    submitBtn.innerText = t('shop_btn_save'); 
     byId('shop-name').value = targetUser.shop.name || ''; 
     byId('shop-slogan').value = targetUser.shop.slogan || ''; 
     byId('shop-category').value = targetUser.shop.category || 'electronics'; 
@@ -2576,8 +2582,8 @@ const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
       byId('shop-logo-preview-box').classList.remove('hidden'); 
     } 
   } else { 
-    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>${isTr ? 'Yeni Mağaza Aç' : 'Открытие нового магазина'}</span>`; 
-    submitBtn.innerText = isTr ? 'Mağaza Aç' : 'Создать магазин'; 
+    titleEl.innerHTML = `<i class="fa-solid fa-store" style="color:#9333ea"></i> <span>${t('shop_title_new')}</span>`; 
+    submitBtn.innerText = t('shop_btn_create'); 
     ['shop-name', 'shop-slogan', 'shop-address', 'shop-hours', 'shop-desc', 'shop-logo-data'].forEach(i => byId(i).value = ''); 
     byId('shop-category').value = 'electronics'; 
     byId('shop-region').value = 'IST'; 
@@ -2586,12 +2592,12 @@ const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
     byId('shop-lng').value = 28.9784; 
     byId('shop-logo-preview-box').classList.add('hidden'); 
   }
-  if (byId('shop-name')) byId('shop-name').placeholder = isTr ? 'Mağaza Adı *' : 'Название магазина *';
-  if (byId('shop-slogan')) byId('shop-slogan').placeholder = isTr ? 'Slogan / Kısa Açıklama *' : 'Слоган / краткое описание *';
-  if (byId('shop-address')) byId('shop-address').placeholder = isTr ? 'Açık Adres *' : 'Точный физический адрес *';
-  if (byId('shop-hours')) byId('shop-hours').placeholder = isTr ? 'Çalışma Saatleri (örn. Cmt-Per 09:00-20:00)' : 'Часы работы (напр. Сб–Чт 09:00–20:00)';
-  if (byId('shop-whatsapp')) byId('shop-whatsapp').placeholder = isTr ? 'Mağaza WhatsApp * (+90…)' : 'WhatsApp магазина * (+90…)';
-  if (byId('shop-desc')) byId('shop-desc').placeholder = isTr ? 'Mağaza Hakkında Detaylı Bilgi *' : 'Подробная информация о магазине *';
+  if (byId('shop-name')) byId('shop-name').placeholder = t('shop_name_ph');
+  if (byId('shop-slogan')) byId('shop-slogan').placeholder = t('shop_slogan_ph');
+  if (byId('shop-address')) byId('shop-address').placeholder = t('shop_address_ph');
+  if (byId('shop-hours')) byId('shop-hours').placeholder = t('shop_hours_ph');
+  if (byId('shop-whatsapp')) byId('shop-whatsapp').placeholder = t('shop_whatsapp_ph');
+  if (byId('shop-desc')) byId('shop-desc').placeholder = t('shop_desc_ph');
   openModal('modal-create-shop'); 
   setTimeout(initShopCreateMap, 200); 
 }
