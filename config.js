@@ -51,19 +51,7 @@ const REGION_COORDS = {
   'KON': [37.8746, 32.4932], 'ADA': [36.9914, 35.3308], 'KAY': [38.7205, 35.4826], 
   'SAM': [41.2867, 36.3300], 'TRA': [41.0027, 39.7168] 
 };
-let categories = [
-  { id:'electronics', name:'Elektronik', icon:'fa-laptop' },
-  { id:'transport', name:'Vasıta & Araçlar', icon:'fa-car' },
-  { id:'realestate', name:'Emlak', icon:'fa-house' },
-  { id:'tools', name:'Alet & Edavat', icon:'fa-hammer' },
-  { id:'home', name:'Ev & Yaşam', icon:'fa-couch' },
-  { id:'food', name:'Gıda & Market', icon:'fa-utensils' },
-  { id:'fashion', name:'Giyim & Moda', icon:'fa-shirt' },
-  { id:'services', name:'Hizmetler', icon:'fa-wrench' },
-  { id:'kids', name:'Anne & Bebek', icon:'fa-baby' },
-  { id:'other', name:'Diğer', icon:'fa-boxes-stacked' }
-];
-
+let categories = [];
 const CATEGORY_ICON_POOL = ['fa-mobile-screen','fa-laptop','fa-car','fa-house','fa-couch','fa-wrench','fa-boxes-stacked','fa-shirt','fa-baby','fa-utensils','fa-book','fa-futbol','fa-gamepad','fa-tractor','fa-truck','fa-gem','fa-paw','fa-seedling','fa-motorcycle','fa-camera','fa-tv','fa-blender','fa-chair','fa-hammer','fa-paint-roller','fa-plug','fa-scissors','fa-briefcase','fa-bicycle','fa-ring'];
 let users = [];
 let archivedUsers = [];

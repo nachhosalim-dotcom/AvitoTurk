@@ -6,15 +6,15 @@ let currentUser = null;
 let pendingRegVerification = null;
 let supabaseClient = null;
 
+// Обращение через прокси для обхода блокировок сети
 // Исправленный рабочий URL и ключ
 // Обращение через прокси для обхода блокировок сети
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const SUPABASE_URL = isLocal 
   ? "https://mmespmwztxkjxhwmsgjn.supabase.co" 
   : `${window.location.origin}/supabase-api`;
-  
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tZXNwbXd6dGt4amh3bXNnam4iLCJpYXQiOjE3ODc5MzY5MzgsImV4cCI6MjEwMzUxMjkzOH0.wz8lllymLmmleherQwR2oqcYQbtXz8P_VqUU8xVhxE4";
 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tZXNwbXd6dHhranhod21zZ2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MzY5MzgsImV4cCI6MjEwMzUxMjkzOH0.wz8lllymLmmleherQwR2oqcYQbtXz8P_VqUU8xVhxE4";
 try {
   if (typeof window.supabase !== 'undefined') {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
