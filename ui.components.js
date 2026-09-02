@@ -688,7 +688,7 @@ setTimeout(async () => {
         <i class="fa-solid ${isCombo ? 'fa-fire' : 'fa-fire-flame-curved'}"></i> ${isCombo ? 'КОМБО' : '-' + discPercent + '%'}
       </div>` : ''}
     <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 space-y-0.5">
-      <div id="grid-title-${ad.id}" class="text-white text-xs font-bold truncate">${ad.title}</div>
+      <div id="grid-title-${ad.id}" class="text-white text-xs font-bold truncate">${typeof escapeHTML === 'function' ? escapeHTML(ad.title) : ad.title}</div>
       <div class="flex items-center gap-1.5 flex-wrap">
         ${hasDisc ? `
           <span class="text-white text-[11px] font-black" style="color:#ef4444">$${Number(ad.price).toFixed(2)}</span>
@@ -730,7 +730,7 @@ const liked = currentUser && (ad.likes || []).includes(currentUser.username);
     </div>
     <div class="flex-1 min-w-0 flex flex-col justify-between">
       <div>
-<div id="list-title-${ad.id}" class="font-bold t1 text-sm truncate">${ad.title}</div>
+<div id="list-title-${ad.id}" class="font-bold t1 text-sm truncate">${typeof escapeHTML === 'function' ? escapeHTML(ad.title) : ad.title}</div>
         <div class="text-xs t2 truncate">${ad.city} • ${timeAgo(ad.createdAt)}</div>
 		</div>
       <div class="flex items-center justify-between pt-1">
@@ -774,18 +774,22 @@ setTimeout(async () => {
         if (dEl && ad.desc) dEl.innerText = await translateDynamic(ad.desc, currentLang);
       }, 10);
 	  
-      const hasDiscount = !!(ad.oldPrice && ad.oldPrice > ad.price);
+const hasDiscount = !!(ad.oldPrice && ad.oldPrice > ad.price);
       const discPercent = hasDiscount ? Math.round((1 - ad.price / ad.oldPrice) * 100) : 0;
       const saveAmount = hasDiscount ? (ad.oldPrice - ad.price) : 0;
+      const safeTitle = typeof escapeHTML === 'function' ? escapeHTML(ad.title) : ad.title;
+      const safeKunya = typeof escapeHTML === 'function' ? escapeHTML(kunya) : kunya;
+      const safeDesc = typeof escapeHTML === 'function' ? escapeHTML(ad.desc || '') : (ad.desc || '');
+      const safeCity = typeof escapeHTML === 'function' ? escapeHTML(ad.city || '') : (ad.city || '');
 
 return `
 <article class="card-in bg-card pb-3 rounded-2xl transition-all my-2 ${hasDiscount || ad.isCombo ? 'fire-card' : 'border-b b-ig'}">
 <div class="flex items-center gap-3 px-3.5 py-2.5">
 <div class="w-9 h-9 rounded-full p-[2px] shrink-0 ${verified ? 'story-ring' : ''}" style="${verified ? '' : 'background:#363636'}"><div class="w-full h-full rounded-full bg-card p-[1.5px]"><div class="w-full h-full rounded-full overflow-hidden bg-field flex items-center justify-center t2 text-xs font-bold cursor-pointer" onclick="openAdDetail('${ad.id}')">${avatar ? `<img src="${avatar}" alt="Аватар продавца" class="w-full h-full object-cover">` : (ad.isCombo ? '<i class="fa-solid fa-fire" style="color:#f97316"></i>' : (ad.sellerUsername || '?').charAt(0).toUpperCase())}</div></div></div>
 <div class="flex-1 min-w-0 cursor-pointer" onclick="openAdDetail('${ad.id}')">
-<div class="flex items-center gap-1.5 text-sm font-semibold t1">${kunya} ${verified ? IGSVG.verified() : ''} <span class="t2 font-normal text-xs">• ${timeAgo(ad.createdAt)}</span></div>
+<div class="flex items-center gap-1.5 text-sm font-semibold t1">${safeKunya} ${verified ? IGSVG.verified() : ''} <span class="t2 font-normal text-xs">• ${timeAgo(ad.createdAt)}</span></div>
 <div class="text-xs t2 truncate">
-  ${regionName} • ${ad.city}
+  ${regionName} • ${safeCity}
   ${(userCurrentCoords && ad.lat && ad.lng) ? ` · <b class="text-blue-500 font-mono font-bold">${calculateDistanceKm(userCurrentCoords.lat, userCurrentCoords.lng, parseFloat(ad.lat), parseFloat(ad.lng)).toFixed(1)} ${t('км от вас')}</b>` : ''}
 </div>
 </div>
@@ -794,7 +798,7 @@ return `
 <div class="relative bg-black overflow-hidden cursor-pointer select-none" style="aspect-ratio:4/5" ontouchstart="handleTouchSwipeStart(event)" ontouchend="handleTouchSwipeEnd(event, (dir) => cardNav(event, '${ad.id}', dir))" onclick="openAdDetail('${ad.id}')">
 ${ad.isCombo ? renderComboSlashCollage(ad) : `
 <div id="cbg-${ad.id}" class="absolute inset-0 bg-cover bg-center blur-md opacity-25 scale-105" style="background-image:url('${imgs[0]}'); transition: opacity 0.3s;"></div>
-<img id="cimg-${ad.id}" src="${imgs[0]}" alt="${ad.title}" fetchpriority="high" decoding="async" class="relative w-full h-full object-contain z-[1] transition-opacity duration-200" onerror="this.src=PLACEHOLDER_IMG" onload="this.style.opacity='1'; if(this.naturalWidth<=300 && this.src.includes('imgbb')) this.src=PLACEHOLDER_IMG;" style="opacity:0.85">
+<img id="cimg-${ad.id}" src="${imgs[0]}" alt="${safeTitle}" fetchpriority="high" decoding="async" class="relative w-full h-full object-contain z-[1] transition-opacity duration-200" onerror="this.src=PLACEHOLDER_IMG" onload="this.style.opacity='1'; if(this.naturalWidth<=300 && this.src.includes('imgbb')) this.src=PLACEHOLDER_IMG;" style="opacity:0.85">
 `}
 ${ad.isCombo ? `
   <div class="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-xl text-xs font-black text-white flex items-center gap-1.5 shadow-xl border border-white/20" style="background:linear-gradient(45deg,#f97316,#ef4444)">
@@ -825,7 +829,7 @@ ${hasDiscount ? `
 </div>` : ''}
 <div class="px-3.5 pt-2 text-sm font-semibold t1">${likesCount > 0 ? `${currentLang === 'tr' ? 'Beğeniler:' : 'Нравится:'} ${likesCount}` : (currentLang === 'tr' ? 'İlk beğenen siz olun' : 'Будьте первым, кому понравилось')}</div>
 ${ad.isCombo ? `<div class="px-3.5 pt-1 text-sm font-semibold t1">💥 ${currentLang === 'tr' ? 'Kampanya Fiyatı:' : 'Цена по акции:'} <span style="color:#f97316">$${Number(ad.price).toFixed(2)}</span> <s class="t2 font-normal">$${ad.comboOriginalTotal.toFixed(2)}</s>${ad.comboOriginalTotal > ad.price ? ` <span style="color:#10b981">${currentLang === 'tr' ? 'kazanç' : 'выгода'} $${(ad.comboOriginalTotal - ad.price).toFixed(2)}</span>` : ''}</div>` : ''}
-<div class="px-3.5 pt-1 text-sm t1 leading-snug"><span class="font-semibold">${kunya}</span> <span id="feed-title-${ad.id}" class="font-semibold">${ad.title}</span> <span id="feed-desc-${ad.id}" class="t2 line-clamp-2">${ad.desc || ''}</span> <button onclick="openAdDetail('${ad.id}')" class="t2">… ${currentLang === 'tr' ? 'devamı' : 'ещё'}</button></div>
+<div class="px-3.5 pt-1 text-sm t1 leading-snug"><span class="font-semibold">${safeKunya}</span> <span id="feed-title-${ad.id}" class="font-semibold">${safeTitle}</span> <span id="feed-desc-${ad.id}" class="t2 line-clamp-2">${safeDesc}</span> <button onclick="openAdDetail('${ad.id}')" class="t2">… ${currentLang === 'tr' ? 'devamı' : 'ещё'}</button></div>
 <div class="px-3.5 pt-1 text-sm t2 cursor-pointer" onclick="openAdDetail('${ad.id}')">${qc > 0 ? `${currentLang === 'tr' ? 'Sırayı Gör:' : 'Посмотреть очередь:'} ${qc}` : (currentLang === 'tr' ? 'Sırada kimse yok' : 'Очередь свободна')}</div>
 <div class="px-3.5 pt-1 flex items-center justify-between text-[10px] t2">
   <span class="uppercase tracking-wide">${timeAgo(ad.createdAt)} • 👁 ${viewsCount}</span>
@@ -1373,12 +1377,13 @@ async function openAdDetail(adId, countView = true) {
   const priceUsd = adToUSD(ad);
   const canBuyWithBalance = currentUser && !isRealOwner && !ad.isFree && !ad.isNegotiable && priceUsd > 0 && (currentUser.avitocashBalance || 0) >= priceUsd;
 
-  let displayTitle = ad.title;
-  let displayDesc = ad.desc || '';
-  let displayCity = ad.city || '';
-  let displayKunya = rawKunya;
+const clean = typeof escapeHTML === 'function' ? escapeHTML : (s => s || '');
+  let displayTitle = clean(ad.title);
+  let displayDesc = clean(ad.desc || '');
+  let displayCity = clean(ad.city || '');
+  let displayKunya = clean(rawKunya);
   let displayRegion = t(rawRegion);
-
+  
   content.innerHTML = `
   <div class="flex flex-col md:flex-row flex-1 min-h-0 w-full h-full overflow-hidden items-stretch">
 <!-- Левая колонка: Фото / Слайдер -->

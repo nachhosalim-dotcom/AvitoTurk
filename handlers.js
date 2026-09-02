@@ -551,9 +551,16 @@ function openCreateAdModal() {
     return;
   }
 
+  isSubmittingAd = false;
+  const submitBtn = byId('create-ad-submit-btn') || document.querySelector('#modal-create-ad button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerText = t('ad_submit_btn');
+  }
+
   pendingCreateImages = []; 
   renderPhotoThumbnailsGrid('create'); 
-  fillCategorySelect(byId('ad-category')); 
+  fillCategorySelect(byId('ad-category'));
   loadDraftCheck();
 
   const userBadge = byId('user-logged-badge');
@@ -734,33 +741,33 @@ function toggleNegotiableField(isNeg) {
 }
 
 
+let isSubmittingAd = false;
+
 async function handleCreateAdSubmit(e) {
   e.preventDefault();
+
+  // Жесткий флаг: если отправка уже идет, последующие нажатия полностью игнорируются
+  if (isSubmittingAd) return;
 
   if (byId('ad-company-trap')?.value) {
     return;
   }
 
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+
   if (!currentUser) {
     openAuthModal();
-    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
     showToast(isTr ? 'Lütfen önce giriş yapın' : 'Пожалуйста, сначала войдите в аккаунт', 'warning');
     return;
   }
 
   let postingUser = currentUser;
-  
   const onbS = byId('ad-post-onbehalf');
   if (onbS && onbS.value && (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN'))) {
-    const t = users.find(u => u.username === onbS.value);
-    if (t) postingUser = t;
+    const tUser = users.find(u => u.username === onbS.value);
+    if (tUser) postingUser = tUser;
   }
 
-  const isFree = byId('ad-is-free')?.checked || false;
-  const isNegotiable = byId('ad-is-negotiable')?.checked || false;
-  const price = (isFree || isNegotiable) ? 0 : parseFloat(byId('ad-price')?.value || 0);
-
-  // Проверка лимитов и тарифов
   const hasShop = !!(postingUser.shop);
   const myActiveAdsCount = ads.filter(a => 
     a.sellerUsername && 
@@ -771,10 +778,21 @@ async function handleCreateAdSubmit(e) {
   if (hasShop) {
     const shopLimit = postingUser.shop.maxAds || 50;
     if (myActiveAdsCount >= shopLimit) {
-      showToast(`Лимит объявлений магазина (${shopLimit} шт.) исчерпан.`, 'warning');
+      showToast(isTr ? `Mağaza ilan limiti (${shopLimit}) doldu.` : `Лимит объявлений магазина (${shopLimit} шт.) исчерпан.`, 'warning');
       return;
     }
   }
+
+  const submitBtn = byId('create-ad-submit-btn') || document.querySelector('#modal-create-ad button[type="submit"]');
+  isSubmittingAd = true;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${isTr ? 'Yayınlanıyor...' : 'Публикация...'}`;
+  }
+
+  const isFree = byId('ad-is-free')?.checked || false;
+  const isNegotiable = byId('ad-is-negotiable')?.checked || false;
+  const price = (isFree || isNegotiable) ? 0 : parseFloat(byId('ad-price')?.value || 0);
 
   const imgs = [...pendingCreateImages];
   if (!imgs.length) imgs.push(PLACEHOLDER_IMG);
@@ -811,9 +829,30 @@ async function handleCreateAdSubmit(e) {
     views: 0
   };
 
-if (supabaseClient) {
+  try {
+    localStorage.setItem('bs_last_seller_location', JSON.stringify({
+      region: newAd.region,
+      city: newAd.city,
+      lat: newAd.lat,
+      lng: newAd.lng
+    }));
+  } catch(err) {}
+
+  // 1. Мгновенно выводим в ленту, закрываем форму и выводим сообщение (без ожидания сети)
+  ads.unshift(newAd);
+  saveCachedAds();
+  closeModal('modal-create-ad');
+  localStorage.removeItem('bs_ad_draft');
+  selectedCategory = 'all';
+  currentPage = 1;
+  renderCategoryPills();
+  renderAds();
+  showToast(isTr ? 'İlan başarıyla yayınlandı!' : 'Объявление успешно опубликовано!', 'success');
+
+  // 2. Фоновая отправка в базу данных Supabase
+  if (supabaseClient) {
     try {
-      const { error: insertErr } = await supabaseClient.from('ads').insert({
+      await supabaseClient.from('ads').insert({
         id: newAd.id,
         title: newAd.title,
         category: newAd.category,
@@ -840,35 +879,16 @@ if (supabaseClient) {
         likes: [],
         views: 0
       });
-
-      if (insertErr) {
-        console.warn('Supabase insert warning:', insertErr.message);
-      }
     } catch (cloudErr) {
       console.warn('Supabase network unreachable, saving ad locally:', cloudErr);
     }
   }
 
-  try {
-    localStorage.setItem('bs_last_seller_location', JSON.stringify({
-      region: newAd.region,
-      city: newAd.city,
-      lat: newAd.lat,
-      lng: newAd.lng
-    }));
-  } catch(err) {}
-  
-  ads.unshift(newAd);
-  saveCachedAds();
-
-  closeModal('modal-create-ad');
-  localStorage.removeItem('bs_ad_draft');
-  selectedCategory = 'all';
-  currentPage = 1;
-  renderCategoryPills();
-  renderAds();
-
-  showToast('Объявление успешно опубликовано!', 'success');
+  isSubmittingAd = false;
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerText = t('ad_submit_btn');
+  }
 }
 
 function openEditAdModal(adId) {
@@ -1729,6 +1749,21 @@ function selectSearchSuggestion(title) {
 
 // 6.1. Полное удаление объявления (с подтверждением и защитой от возврата)
 function deleteAdWithConfirm(adId) {
+  const ad = ads.find(a => a.id === adId);
+  if (!ad) return;
+
+  const isOwner = currentUser && (
+    (ad.sellerUsername && currentUser.username && ad.sellerUsername.toLowerCase() === currentUser.username.toLowerCase()) ||
+    currentUser.role === 'SUPERUSER' || 
+    currentUser.role === 'ADMIN'
+  );
+
+  if (!isOwner) {
+    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+    showToast(isTr ? 'Bu ilanı silme yetkiniz yok!' : 'У вас нет прав на удаление этого объявления!', 'error');
+    return;
+  }
+
   showConfirmModal('Удаление объявления', 'Удалить объявление навсегда из базы данных?', async () => {
     markAdDeletedLocally(adId);
     ads = ads.filter(a => a.id !== adId);
