@@ -1,5 +1,16 @@
 /* ================= STATE & CONFIGURATION ================= */
 
+/* ================= XSS SANITIZER ================= */
+function escapeHTML(str) {
+  if (!str || typeof str !== 'string') return str || '';
+  return str.replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[tag] || tag));
+}
 const _savedLayout = localStorage.getItem('bs_feed_layout') || 'instagram';
 const _isDesktopInit = typeof window !== 'undefined' && window.innerWidth >= 1024;
 let selectedCategory = 'all', currentPage = 1, itemsPerPage = _savedLayout === 'list' ? (_isDesktopInit ? 18 : 10) : (_savedLayout === 'grid' ? (_isDesktopInit ? 24 : 12) : (_isDesktopInit ? 16 : 8)), favorites = [];
@@ -38,7 +49,7 @@ const AVITOCASH_ID = '3adfe36abcbe52f1a4b008cd324082fb';
 const PLACEHOLDER_IMG = 'https://placehold.co/800x1000/1e293b/fff?text=Avito+Türk';
 let EXCHANGE_RATES = { TRY: 38.50 };
 let SYSTEM_CONFIG = { rulesAccepted: false, adminTab: 'overview' };
-const REGION_NAMES = { 
+const REGION_NAMES_TR = { 
   'IST': 'İstanbul', 'ANK': 'Ankara', 'IZM': 'İzmir', 'BUR': 'Bursa', 
   'ANT': 'Antalya', 'GAZ': 'Gaziantep', 'HAT': 'Hatay', 'MER': 'Mersin', 
   'URF': 'Şanlıurfa', 'KON': 'Konya', 'ADA': 'Adana', 'KAY': 'Kayseri', 
@@ -52,13 +63,15 @@ const REGION_NAMES_RU = {
   'SAM': 'Самсун', 'TRA': 'Трабзон' 
 };
 
+const REGION_NAMES = REGION_NAMES_TR; // Обратная совместимость
+
 function getRegionName(code) {
-  if (!code || code === 'ALL') return (typeof currentLang !== 'undefined' && currentLang === 'tr') ? 'Tüm İller' : 'Все регионы';
   const lang = (typeof currentLang !== 'undefined') ? currentLang : 'tr';
+  if (!code || code === 'ALL') return lang === 'tr' ? 'Tüm İller' : 'Все регионы';
   if (lang === 'ru') {
-    return REGION_NAMES_RU[code] || REGION_NAMES[code] || code;
+    return REGION_NAMES_RU[code] || REGION_NAMES_TR[code] || code;
   }
-  return REGION_NAMES[code] || code;
+  return REGION_NAMES_TR[code] || code;
 }
 const REGION_COORDS = { 
   'IST': [41.0082, 28.9784], 'ANK': [39.9334, 32.8597], 'IZM': [38.4192, 27.1287], 

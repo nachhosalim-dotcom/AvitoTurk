@@ -544,26 +544,25 @@ function toggleAdvancedCreateFields() {
 }
 
 function openCreateAdModal() { 
+  if (!currentUser) {
+    openAuthModal();
+    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+    showToast(isTr ? 'İlan vermek için lütfen giriş yapın veya kayıt olun' : 'Для подачи объявления войдите или зарегистрируйтесь', 'warning');
+    return;
+  }
+
   pendingCreateImages = []; 
   renderPhotoThumbnailsGrid('create'); 
   fillCategorySelect(byId('ad-category')); 
   loadDraftCheck();
 
-  const guestBlock = byId('guest-auth-block');
   const userBadge = byId('user-logged-badge');
   const userNameEl = byId('user-logged-name');
-
-  if (currentUser) {
-    if (guestBlock) guestBlock.classList.add('hidden');
-    if (userBadge) {
-      userBadge.classList.remove('hidden');
-      if (userNameEl) userNameEl.innerText = `${currentUser.kunya || currentUser.username} (@${currentUser.username})`;
-    }
-  } else {
-    if (guestBlock) guestBlock.classList.remove('hidden');
-    if (userBadge) userBadge.classList.add('hidden');
+  if (userBadge) {
+    userBadge.classList.remove('hidden');
+    if (userNameEl) userNameEl.innerText = `${currentUser.kunya || currentUser.username} (@${currentUser.username})`;
   }
-
+  
 // Фоновый запрос GPS для автоматического выставления региона
   if (navigator.geolocation && (!userCurrentCoords || !userCurrentCoords.lat)) {
     navigator.geolocation.getCurrentPosition(pos => {
@@ -738,60 +737,18 @@ function toggleNegotiableField(isNeg) {
 async function handleCreateAdSubmit(e) {
   e.preventDefault();
 
-  let postingUser = currentUser;
-
-// Авторегистрация гостя при первой публикации только по номеру
-  if (!postingUser) {
-    const gWaRaw = byId('guest-whatsapp')?.value.trim();
-    if (!gWaRaw) {
-      showToast('Укажите ваш номер WhatsApp для связи', 'warning');
-      return;
-    }
-
-    const waCheck = validateWhatsApp(gWaRaw);
-    if (!waCheck.valid) {
-      showToast(waCheck.error, 'error');
-      return;
-    }
-    const cleanWa = waCheck.number;
-
-    // Если аккаунт с таким номером уже существует — привязываем к нему
-    const existing = users.find(u => u.whatsapp && u.whatsapp.replace(/\D/g, '') === cleanWa.replace(/\D/g, ''));
-    if (existing) {
-      postingUser = existing;
-      saveUserSession(postingUser, true);
-    } else {
-      if (!supabaseClient) {
-        showToast('Нет соединения с базой данных', 'error');
-        return;
-      }
-
-      const autoLogin = 'user_' + cleanWa.replace(/\D/g, '').slice(-6);
-      const autoPass = 'sham' + Math.floor(1000 + Math.random() * 9000);
-      const passHash = await sha256(autoPass);
-      const newUid = 'u_' + Date.now();
-
-      const { data: regRes, error: regErr } = await supabaseClient.rpc('register_new_user', {
-        p_uid: newUid,
-        p_username: autoLogin,
-        p_password_hash: passHash,
-        p_kunya: 'Пользователь',
-        p_gender: 'MALE',
-        p_whatsapp: cleanWa,
-        p_avatar: null
-      });
-
-      if (regErr || !regRes || !regRes.success) {
-        showToast(regRes?.error || 'Ошибка создания аккаунта', 'error');
-        return;
-      }
-
-      postingUser = regRes.user;
-      users.push(postingUser);
-      saveUserSession(postingUser, true);
-      showToast(`Профиль создан! Логин: @${postingUser.username}`, 'success');
-    }
+  if (byId('ad-company-trap')?.value) {
+    return;
   }
+
+  if (!currentUser) {
+    openAuthModal();
+    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+    showToast(isTr ? 'Lütfen önce giriş yapın' : 'Пожалуйста, сначала войдите в аккаунт', 'warning');
+    return;
+  }
+
+  let postingUser = currentUser;
   
   const onbS = byId('ad-post-onbehalf');
   if (onbS && onbS.value && (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN'))) {
@@ -1838,10 +1795,22 @@ function updateRegionLabel() {
   if (lbl) {
     lbl.innerText = regVal === 'ALL' ? (isTr ? 'Tüm İller' : 'Все регионы') : getRegionName(regVal);
   }
+  
+  // Синхронизация названий внутри скрытого селекта region-filter
+  const regionSel = byId('region-filter');
+  if (regionSel && regionSel.options.length > 0) {
+    regionSel.options[0].text = isTr ? 'Tüm İller (Türkiye)' : 'Все регионы (Турция)';
+    Object.keys(REGION_NAMES_TR).forEach((code, idx) => {
+const opt = regionSel.querySelector(`option[value="${code}"]`);
+      if (opt) {
+        opt.text = getRegionName(code);
+      }
+    });
+  }
 }
 
 function openRadiusMenu() {
-  const m = byId('radius-menu-overlay');
+	const m = byId('radius-menu-overlay');
   if (!m) return;
   const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
 

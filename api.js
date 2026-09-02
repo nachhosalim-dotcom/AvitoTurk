@@ -68,13 +68,17 @@ function validateWhatsApp(number) {
 async function initSupabaseSync() {
   if (!supabaseClient) return;
   try {
+const userQuery = currentUser?.uid 
+      ? supabaseClient.from('users').select('*').eq('uid', currentUser.uid)
+      : Promise.resolve({ data: [] });
+
     const [usersRes, adsRes, combosRes, catsRes] = await Promise.allSettled([
-      supabaseClient.from('users').select('*'),
+      userQuery,
       supabaseClient.from('ads').select('*').order('created_at', { ascending: false }).limit(100),
       supabaseClient.from('combos').select('*'),
       supabaseClient.from('categories').select('*')
     ]);
-
+	
     let dataUpdated = false;
 
     if (usersRes.status === 'fulfilled' && usersRes.value.data) {
@@ -748,7 +752,7 @@ const sortLbl = byId('current-sort-label');
   if (adDescInp) adDescInp.placeholder = t('ad_desc_ph');
   const adAdvBtn = byId('create-ad-advanced-fields')?.previousElementSibling?.querySelector('span');
   if (adAdvBtn) adAdvBtn.innerHTML = `<i class="fa-solid fa-sliders text-purple-400"></i> ${t('ad_advanced_btn')}`;
-  const createSubBtn = document.querySelector('#modal-create-ad button[type="submit"]');
+const createSubBtn = document.querySelector('#modal-create-ad button[type="submit"]');
   if (createSubBtn) createSubBtn.innerText = t('ad_submit_btn');
 
   // Баннер черновика
@@ -927,15 +931,7 @@ const devLbl = byId('ft-dev-label');
     if (offWait) offWait.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>${isTr ? 'Ağ bekleniyor...' : 'Ожидание сети...'}`;
   }
 
-  // Скрытые надписи в подаче объявления (Гость, Админ, Магазин)
-  const guestAuthBlock = byId('guest-auth-block');
-  if (guestAuthBlock) {
-    const guestLbl = guestAuthBlock.querySelector('.font-bold');
-    if (guestLbl) guestLbl.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> ${isTr ? 'İletişim numarası (profil otomatik oluşturulur):' : 'Контакт для связи (профиль создастся автоматически):'}`;
-    const guestWa = byId('guest-whatsapp');
-    if (guestWa) guestWa.placeholder = isTr ? 'WhatsApp numaranız (+90...)*' : 'Ваш номер WhatsApp (+90…)*';
-  }
-
+// Скрытые надписи в подаче объявления (Админ, Магазин)
   const userLoggedBadge = byId('user-logged-badge');
   if (userLoggedBadge) {
     const badgeSpan = userLoggedBadge.querySelector('span');

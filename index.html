@@ -564,14 +564,6 @@ body { top: 0px !important; }
   <span class="text-[10px] text-emerald-500 font-semibold">Автоматически</span>
 </div>
 
-<!-- 7. Блок автора для неавторизованного гостя -->
-<div id="guest-auth-block" class="p-3.5 rounded-xl border space-y-2" style="border-color:rgba(0,149,246,.35);background:rgba(0,149,246,.06)">
-  <div class="text-xs font-bold flex items-center gap-1.5" style="color:#0095f6">
-    <i class="fa-brands fa-whatsapp text-sm"></i> Контакт для связи (профиль создастся автоматически):
-  </div>
-  <input type="text" id="guest-whatsapp" placeholder="Ваш номер WhatsApp (+90…)*" class="ig-input w-full px-3.5 py-2.5 text-xs font-bold">
-</div>
-
 <!-- Информация для авторизованного -->
 <div id="user-logged-badge" class="hidden p-2.5 rounded-xl bg-field border b-ig flex items-center gap-2 text-xs font-semibold t1">
   <i class="fa-solid fa-circle-check text-emerald-500"></i>
@@ -624,6 +616,8 @@ body { top: 0px !important; }
     <input type="hidden" id="ad-lat" value="41.0082"><input type="hidden" id="ad-lng" value="28.9784">
   </div>
 </div>
+
+<input type="text" id="ad-company-trap" style="display:none !important;" tabindex="-1" autocomplete="off">
 
 <div class="sticky bottom-0 bg-card pt-2 pb-1">
 <button type="submit" id="create-ad-submit-btn" class="ig-btn w-full py-3 text-sm font-bold shadow-lg">Опубликовать объявление</button>
