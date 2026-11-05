@@ -50,7 +50,7 @@ const originalTotal = items.reduce((s, a) => s + adToUSD(a), 0);
     title: c.title || 'Комбо-набор', 
     category: 'combo', 
     region: shop?.region || 'DAM', 
-    city: shop?.name || 'Авито Шам', 
+    city: shop?.name || 'Avito Türk', 
     isFree: false, 
     isNegotiable: false, 
     isWomenOnly: false, 
@@ -436,7 +436,7 @@ function renderSupportQR() {
       console.warn('QR render retry:', e); 
     } 
   } 
-  box.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=208x208&data=${encodeURIComponent(AVITOCASH_ID)}" alt="ShamCash QR" class="w-[208px] h-[208px] rounded-lg">`;
+  box.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=208x208&data=${encodeURIComponent(AVITOCASH_ID)}" alt="AvitoCash QR" class="w-[208px] h-[208px] rounded-lg">`;
 }
 
 function renderPhotoThumbnailsGrid(mode = 'create') {
@@ -465,7 +465,7 @@ function renderComboItemsList() {
   }
   list.innerHTML = comboBuilderAds.map(a => {
     const sel = comboSelectedIds.includes(a.id);
-    return `<label class="flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${sel ? '' : 'b-ig bg-field hover:bg-ig'}" style="${sel ? 'border-color:#f97316;background:rgba(249,115,22,.1)' : ''}"><input type="checkbox" ${sel ? 'checked' : ''} onchange="toggleComboItem('${a.id}')" class="w-4 h-4 shrink-0" style="accent-color:#f97316"><img src="${(a.images && a.images[0]) || a.image}" class="w-10 h-10 rounded-lg object-cover border b-ig shrink-0"><div class="flex-1 min-w-0"><div id="combo-item-builder-title-${a.id}" class="font-bold t1 text-xs truncate">${a.title}</div><div class="text-[10px] t2">${convertPriceAll(a.price, a.currency, a.isFree, a.isNegotiable)}</div></div>${sel ? '<i class="fa-solid fa-fire" style="color:#f97316"></i>' : ''}</label>`;
+    return `<label class="flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${sel ? '' : 'b-ig bg-field hover:bg-ig'}" style="${sel ? 'border-color:#f97316;background:rgba(249,115,22,.1)' : ''}"><input type="checkbox" ${sel ? 'checked' : ''} onchange="toggleComboItem('${a.id}')" class="w-4 h-4 shrink-0" style="accent-color:#f97316"><img src="${(a.images && a.images[0]) || a.image}" class="w-10 h-10 rounded-lg object-cover border b-ig shrink-0"><div class="flex-1 min-w-0"><div id="combo-item-builder-title-${a.id}" class="font-bold t1 text-xs truncate">${escapeHTML(a.title)}</div><div class="text-[10px] t2">${convertPriceAll(a.price, a.currency, a.isFree, a.isNegotiable)}</div></div>${sel ? '<i class="fa-solid fa-fire" style="color:#f97316"></i>' : ''}</label>`;
   }).join('');
 
 if (typeof translateDynamic === 'function') {
@@ -530,7 +530,7 @@ function renderCategoryPills() {
     </div>
   </div>
 </div>
-<span class="text-[10px] ${active ? 'font-bold t1' : 't2'} truncate w-full text-center leading-tight">${p.name}</span>
+<span class="text-[10px] ${active ? 'font-bold t1' : 't2'} truncate w-full text-center leading-tight">${escapeHTML(p.name)}</span>
 <span class="text-[8px] t2 -mt-0.5">${count}</span>
 </button>`;
   }).join('');
@@ -557,9 +557,9 @@ if (selectedCategory === 'shops_dir') {
       return `<div class="ig-card rounded-xl p-3 space-y-2 card-in">
 <div class="flex items-center gap-3">
 <div class="story-ring rounded-full p-[2px] shrink-0"><div class="rounded-full bg-card p-[2px]"><div class="w-12 h-12 rounded-full overflow-hidden bg-field flex items-center justify-center t2">${s.logo ? `<img src="${s.logo}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-store text-lg"></i>'}</div></div></div>
-<div class="flex-1 min-w-0"><div class="font-bold text-sm t1 flex items-center gap-1.5 truncate"><span>${s.name}</span> ${IGSVG.verified()}</div><div id="shop-slogan-${u.uid}" class="text-xs t2 truncate">${s.slogan || ''}</div><div class="text-xs t2"><i class="fa-solid fa-location-dot" style="color:#f59e0b"></i> ${rName}</div></div>
+<div class="flex-1 min-w-0"><div class="font-bold text-sm t1 flex items-center gap-1.5 truncate"><span>${escapeHTML(s.name)}</span> ${IGSVG.verified()}</div><div id="shop-slogan-${u.uid}" class="text-xs t2 truncate">${s.slogan || ''}</div><div class="text-xs t2"><i class="fa-solid fa-location-dot" style="color:#f59e0b"></i> ${rName}</div></div>
 </div>
-<p id="shop-desc-${u.uid}" class="text-xs t1 line-clamp-2 bg-field p-2 rounded-lg border b-ig">${s.desc || ''}</p>
+<p id="shop-desc-${u.uid}" class="text-xs t1 line-clamp-2 bg-field p-2 rounded-lg border b-ig">${escapeHTML(s.desc || '')}</p>
 <div class="pt-2 border-t b-ig flex items-center justify-between"><span class="text-[10px] font-bold" style="color:#f59e0b"><i class="fa-solid fa-boxes-stacked"></i> ${cnt} ${t('объявл.')} ${uCombos > 0 ? `• <span style="color:#f97316"><i class="fa-solid fa-fire"></i> ${uCombos} ${t('акций')}</span>` : ''}</span><button onclick="openShopShowcase('${u.uid}')" class="ig-btn px-4 py-1.5 text-xs">${t('Смотреть магазин')}</button></div></div>`;
     }).join('');
 
@@ -731,7 +731,7 @@ const liked = currentUser && (ad.likes || []).includes(currentUser.username);
     <div class="flex-1 min-w-0 flex flex-col justify-between">
       <div>
 <div id="list-title-${ad.id}" class="font-bold t1 text-sm truncate">${typeof escapeHTML === 'function' ? escapeHTML(ad.title) : ad.title}</div>
-        <div class="text-xs t2 truncate">${ad.city} • ${timeAgo(ad.createdAt)}</div>
+        <div class="text-xs t2 truncate">${escapeHTML(ad.city)} • ${timeAgo(ad.createdAt)}</div>
 		</div>
       <div class="flex items-center justify-between pt-1">
         <div>
@@ -765,7 +765,7 @@ const liked = currentUser && (ad.likes || []).includes(currentUser.username);
       const liked = currentUser && (ad.likes || []).includes(currentUser.username);
       const likesCount = (ad.likes || []).length;
       const viewsCount = ad.views || 0;
-      const regionName = t(REGION_NAMES[ad.region] || ad.region || 'Сирия');
+      const regionName = t(REGION_NAMES[ad.region] || ad.region || 'Турция');
 
 setTimeout(async () => {
         const tEl = document.getElementById(`feed-title-${ad.id}`);
@@ -897,7 +897,7 @@ function renderFinanceReport() {
   const rejected = requests.filter(r => r.status === 'rejected');
   const approvedAmount = approved.reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const pendingAmount = pending.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-  return `<div class="space-y-3"><div class="flex items-center justify-between gap-2 flex-wrap"><h4 class="font-bold t1 text-sm"><i class="fa-solid fa-chart-line" style="color:#10b981"></i> ${t('Актуальный финансовый отчет')}</h4><span class="text-[10px] t2">${t('Обновлено:')} ${new Date().toLocaleTimeString()}</span></div><div class="grid grid-cols-2 lg:grid-cols-4 gap-2"><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('Баланс пользователей')}</div><div class="text-lg font-extrabold" style="color:#f59e0b">${totalBalance.toFixed(2)} AC</div></div><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('С балансом')}</div><div class="text-lg font-extrabold" style="color:#0095f6">${fundedUsers}</div></div><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('Ожидают проверки')}</div><div class="text-lg font-extrabold" style="color:#f59e0b">${pendingAmount.toFixed(2)} AC</div><div class="text-[10px] t2">${pending.length} ${t('заявок')}</div></div><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('Подтверждено')}</div><div class="text-lg font-extrabold" style="color:#10b981">${approvedAmount.toFixed(2)} AC</div><div class="text-[10px] t2">${approved.length} ${t('заявок')}</div></div></div><div class="ig-card p-3 rounded-xl"><div class="flex items-center justify-between gap-2 mb-2"><span class="text-xs font-bold t1">${t('Баланс пользователей')}</span><span class="text-[10px] t2">${t('Отклонено заявок:')} ${rejected.length}</span></div><div class="space-y-1 max-h-64 overflow-y-auto">${balances.length ? balances.map(u => `<div class="flex items-center justify-between gap-3 border-b b-ig py-2 text-xs"><span class="min-w-0 truncate"><b class="t1">${u.name}</b> <span class="t2">@${u.username}</span></span><b style="color:${u.balance > 0 ? '#f59e0b' : 'var(--ig-text2)'}">${u.balance.toFixed(2)} AC</b></div>`).join('') : `<div class="text-center py-4 t2">${t('Пользователей нет')}</div>`}</div></div></div>`;
+  return `<div class="space-y-3"><div class="flex items-center justify-between gap-2 flex-wrap"><h4 class="font-bold t1 text-sm"><i class="fa-solid fa-chart-line" style="color:#10b981"></i> ${t('Актуальный финансовый отчет')}</h4><span class="text-[10px] t2">${t('Обновлено:')} ${new Date().toLocaleTimeString()}</span></div><div class="grid grid-cols-2 lg:grid-cols-4 gap-2"><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('Баланс пользователей')}</div><div class="text-lg font-extrabold" style="color:#f59e0b">${totalBalance.toFixed(2)} AC</div></div><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('С балансом')}</div><div class="text-lg font-extrabold" style="color:#0095f6">${fundedUsers}</div></div><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('Ожидают проверки')}</div><div class="text-lg font-extrabold" style="color:#f59e0b">${pendingAmount.toFixed(2)} AC</div><div class="text-[10px] t2">${pending.length} ${t('заявок')}</div></div><div class="ig-card p-3 rounded-xl"><div class="text-[10px] t2">${t('Подтверждено')}</div><div class="text-lg font-extrabold" style="color:#10b981">${approvedAmount.toFixed(2)} AC</div><div class="text-[10px] t2">${approved.length} ${t('заявок')}</div></div></div><div class="ig-card p-3 rounded-xl"><div class="flex items-center justify-between gap-2 mb-2"><span class="text-xs font-bold t1">${t('Баланс пользователей')}</span><span class="text-[10px] t2">${t('Отклонено заявок:')} ${rejected.length}</span></div><div class="space-y-1 max-h-64 overflow-y-auto">${balances.length ? balances.map(u => `<div class="flex items-center justify-between gap-3 border-b b-ig py-2 text-xs"><span class="min-w-0 truncate"><b class="t1">${u.name}</b> <span class="t2">@${escapeHTML(u.username)}</span></span><b style="color:${u.balance > 0 ? '#f59e0b' : 'var(--ig-text2)'}">${u.balance.toFixed(2)} AC</b></div>`).join('') : `<div class="text-center py-4 t2">${t('Пользователей нет')}</div>`}</div></div></div>`;
 }
 
 function renderBackupList() {
@@ -983,7 +983,7 @@ function renderAdminTabContent() {
         <h4 class="font-bold t1 text-xs">Магазины (${shopsList.length})</h4>
         <div class="p-3 rounded-xl border space-y-2 bg-field b-ig">
             <div class="font-bold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-store" style="color:#0095f6"></i> Создать магазин для пользователя:</div>
-            ${noShop.length ? `<div class="flex gap-2"><select id="admin-new-shop-user" class="ig-input flex-1 px-3 py-2 text-xs">${noShop.map(u => `<option value="${u.uid}">@${u.username} — ${u.kunya || 'без имени'}</option>`).join('')}</select><button onclick="adminCreateShopForUser()" class="ig-btn px-3 py-2 text-xs shrink-0">Создать</button></div>` : '<div class="text-[11px] t2">Все пользователи уже имеют магазины.</div>'}
+            ${noShop.length ? `<div class="flex gap-2"><select id="admin-new-shop-user" class="ig-input flex-1 px-3 py-2 text-xs">${noShop.map(u => `<option value="${u.uid}">@${escapeHTML(u.username)} — ${u.kunya || 'без имени'}</option>`).join('')}</select><button onclick="adminCreateShopForUser()" class="ig-btn px-3 py-2 text-xs shrink-0">Создать</button></div>` : '<div class="text-[11px] t2">Все пользователи уже имеют магазины.</div>'}
         </div>
         <div class="space-y-2 max-h-none overflow-y-auto pr-1">
             ${shopsList.length === 0 ? '<div class="text-center py-8 t2">Магазинов пока нет</div>' : shopsList.map(u => { 
@@ -998,13 +998,13 @@ function renderAdminTabContent() {
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
-                                <span>${s.name}</span>
+                                <span>${escapeHTML(s.name)}</span>
                                 <span class="px-2 py-0.5 rounded-full text-[9px] border" style="${isVer ? 'background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)' : 'background:rgba(245,158,11,.15);color:#f59e0b;border-color:rgba(245,158,11,.4)'}">
                                     ${isVer ? 'Подтвержден' : 'На проверке'}
                                 </span>
                                 ${uCombos > 0 ? `<span class="px-2 py-0.5 rounded-full text-[9px] border" style="background:rgba(249,115,22,.12);color:#f97316;border-color:rgba(249,115,22,.4)"><i class="fa-solid fa-fire"></i> ${uCombos}</span>` : ''}
                             </div>
-                            <div class="text-[10px] t2 truncate">@${u.username} • ${REGION_NAMES[s.region] || s.region} • ${s.whatsapp || '—'}</div>
+                            <div class="text-[10px] t2 truncate">@${escapeHTML(u.username)} • ${REGION_NAMES[s.region] || s.region} • ${escapeHTML(s.whatsapp || '—')}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 pt-2 border-t b-ig justify-end flex-wrap">
@@ -1041,13 +1041,13 @@ function renderAdminTabContent() {
                             </div>
                             <div class="min-w-0">
                                 <div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
-                                    <span>${u.kunya || u.username}</span> 
-                                    <span class="t2 font-normal">(@${u.username})</span> 
+                                    <span>${escapeHTML(u.kunya || u.username)}</span> 
+                                    <span class="t2 font-normal">(@${escapeHTML(u.username)})</span> 
                                     ${u.frozen ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-blue-500/15 text-blue-400">❄ ЗАМОРОЖЕН</span>' : ''}
                                 </div>
                                 <div class="text-[10px] t2 flex items-center gap-2">
                                     <span>Роль: <b style="color:#f59e0b">${u.role}</b></span>
-                                    <span>• WA: ${u.whatsapp || '—'}</span>
+                                    <span>• WA: ${escapeHTML(u.whatsapp || '—')}</span>
                                 </div>
                             </div>
                         </div>
@@ -1057,10 +1057,10 @@ function renderAdminTabContent() {
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 pt-2 border-t b-ig justify-end flex-wrap">
-                        <button onclick="openCreateAdModalForUser('${u.username}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)" title="Подать объявление от имени пользователя">
+                        <button onclick="openCreateAdModalForUser('${jsArg(u.username)}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)" title="Подать объявление от имени пользователя">
                             <i class="fa-solid fa-plus"></i>
                         </button>
-                        <button onclick="openEditProfileModal('${u.username}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(0,149,246,.1);color:#0095f6;border-color:rgba(0,149,246,.3)" title="Редактировать анкету">
+                        <button onclick="openEditProfileModal('${jsArg(u.username)}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(0,149,246,.1);color:#0095f6;border-color:rgba(0,149,246,.3)" title="Редактировать анкету">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
                         <button onclick="toggleFreezeUser('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="${u.frozen ? 'background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)' : 'background:rgba(96,165,250,.1);color:#60a5fa;border-color:rgba(96,165,250,.3)'}" title="${u.frozen ? 'Разморозить' : 'Заморозить'}">
@@ -1120,12 +1120,12 @@ function renderAdminTabContent() {
                             </div>
                             <div class="min-w-0">
                                 <div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
-                                    <span class="truncate">${a.title}</span>
+                                    <span class="truncate">${escapeHTML(a.title)}</span>
                                     ${statusBadge}
                                     ${expiryBadge}
                                 </div>
                                 <div class="text-[10px] t2 truncate">
-                                    ${a.city || 'Сирия'} • @${a.sellerUsername || 'неизвестно'} • Опубликовано: <b>${pubDateStr}</b> • 👁 ${a.views || 0} • ❤ ${(a.likes || []).length}
+                                    ${escapeHTML(a.city || 'Турция')} • @${escapeHTML(a.sellerUsername || 'неизвестно')} • Опубликовано: <b>${pubDateStr}</b> • 👁 ${a.views || 0} • ❤ ${(a.likes || []).length}
                                 </div>
                             </div>
                         </div>
@@ -1188,8 +1188,8 @@ function renderAdminTabContent() {
                         </button>
                     </div>
                     <div class="bg-field p-2 rounded-lg border b-ig text-xs space-y-1">
-                        <div class="text-[10px] t2 truncate">Объявление: <span class="t1 font-mono">${r.adId}</span> ${ad ? `(${ad.title})` : '(Удалено)'}</div>
-                        ${r.comment ? `<div class="t1 italic">"${r.comment}"</div>` : ''}
+                        <div class="text-[10px] t2 truncate">Объявление: <span class="t1 font-mono">${escapeHTML(r.adId)}</span> ${ad ? `(${escapeHTML(ad.title)})` : '(Удалено)'}</div>
+                        ${r.comment ? `<div class="t1 italic">"${escapeHTML(r.comment)}"</div>` : ''}
                     </div>
                     ${ad ? `<button type="button" aria-label="Закрыть" onclick="closeModal('modal-admin-panel'); openAdDetail('${ad.id}')" class="w-full py-1.5 rounded-lg text-xs font-semibold border b-ig t1 hover:bg-field">Открыть объявление</button>` : ''}
                 </div>`; 
@@ -1197,7 +1197,7 @@ function renderAdminTabContent() {
         </div>
     </div>`; 
   } else if (tab === 'archive') { 
-    c.innerHTML = `<div class="space-y-3"><h4 class="font-bold t1 text-xs">Архив пользователей (${archivedUsers.length})</h4><div class="space-y-2 max-h-none overflow-y-auto pr-1">${archivedUsers.length === 0 ? '<div class="text-center py-8 t2">Архив пуст</div>' : archivedUsers.map(u => `<div class="ig-card p-3 rounded-xl flex items-center justify-between gap-2"><div class="min-w-0"><div class="font-bold t1 text-xs">${u.kunya || u.username} (@${u.username})</div><div class="text-[10px] t2">${u.role} • ${u.whatsapp || '—'}</div></div><div class="flex gap-1.5 shrink-0"><button onclick="restoreUserFromArchive('${u.uid}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border" style="background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.4)">Вернуть</button><button onclick="deleteUserPermanently('${u.uid}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style="background:rgba(237,73,86,.12);color:#ed4956">Удалить</button></div></div>`).join('')}</div></div>`; 
+    c.innerHTML = `<div class="space-y-3"><h4 class="font-bold t1 text-xs">Архив пользователей (${archivedUsers.length})</h4><div class="space-y-2 max-h-none overflow-y-auto pr-1">${archivedUsers.length === 0 ? '<div class="text-center py-8 t2">Архив пуст</div>' : archivedUsers.map(u => `<div class="ig-card p-3 rounded-xl flex items-center justify-between gap-2"><div class="min-w-0"><div class="font-bold t1 text-xs">${escapeHTML(u.kunya || u.username)} (@${escapeHTML(u.username)})</div><div class="text-[10px] t2">${u.role} • ${escapeHTML(u.whatsapp || '—')}</div></div><div class="flex gap-1.5 shrink-0"><button onclick="restoreUserFromArchive('${u.uid}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border" style="background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.4)">Вернуть</button><button onclick="deleteUserPermanently('${u.uid}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style="background:rgba(237,73,86,.12);color:#ed4956">Удалить</button></div></div>`).join('')}</div></div>`; 
   } else if (tab === 'cats') { 
     c.innerHTML = `<div class="space-y-3">
 <h4 class="font-bold t1 text-xs">Основные категории ленты (${categories.length})</h4>
@@ -1210,8 +1210,8 @@ function renderAdminTabContent() {
 </div>
 <div class="space-y-2 max-h-none overflow-y-auto pr-1">${categories.map(cat => { const cnt = getCategoryAdsCount(cat.id); return `<div class="ig-card p-3 rounded-xl flex items-center justify-between gap-2">
 <div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-lg bg-field border b-ig flex items-center justify-center shrink-0" style="color:#f59e0b"><i class="fa-solid ${cat.icon || 'fa-tag'}"></i></div>
-<div class="min-w-0"><div class="font-bold t1 text-xs truncate">${cat.name}</div><div class="text-[10px] t2">ID: ${cat.id} • Объявлений: ${cnt}</div></div></div>
-<div class="flex gap-1.5 shrink-0"><button onclick="startEditCategory('${cat.id}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border" style="background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.4)"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteCategoryWithConfirm('${cat.id}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style="background:rgba(237,73,86,.12);color:#ed4956"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join('')}</div></div>`; 
+<div class="min-w-0"><div class="font-bold t1 text-xs truncate">${escapeHTML(cat.name)}</div><div class="text-[10px] t2">ID: ${escapeHTML(cat.id)} • Объявлений: ${cnt}</div></div></div>
+<div class="flex gap-1.5 shrink-0"><button onclick="startEditCategory('${jsArg(cat.id)}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border" style="background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.4)"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteCategoryWithConfirm('${jsArg(cat.id)}')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold" style="background:rgba(237,73,86,.12);color:#ed4956"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join('')}</div></div>`; 
   } else if (tab === 'finance') { 
     if (!_0xSCAdmin()) { c.innerHTML = '<div class="text-center py-10 t2">Раздел доступен только Главному Администратору.</div>'; return; } 
     c.innerHTML = `
@@ -1236,7 +1236,7 @@ function renderAdminTabContent() {
       const q = searchVal.toLowerCase();
       if (!q) return true;
       return String(r.code).toLowerCase().includes(q) || String(r.username).toLowerCase().includes(q);
-    }).map(([id,r]) => `<div class="ig-card p-3 rounded-xl space-y-2"><div class="flex items-center justify-between gap-2 flex-wrap"><span class="font-mono font-bold t1">${r.code}</span><span class="font-bold" style="color:#f59e0b">${Number(r.amount).toFixed(2)} AC</span></div><div class="text-xs t2">@${r.username} • ${new Date(r.timestamp).toLocaleString()}</div><div class="flex gap-2 flex-wrap"><span class="px-2 py-1 rounded-full text-[10px] font-semibold border" style="${r.status === 'pending' ? 'background:rgba(245,158,11,.15);color:#f59e0b;border-color:rgba(245,158,11,.4)' : r.status === 'approved' ? 'background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)' : 'background:rgba(237,73,86,.15);color:#ed4956;border-color:rgba(237,73,86,.4)'}">${r.status}</span>${r.status === 'pending' ? `<button onclick="verifyPayment('${id}', true)" class="ig-btn px-3 py-2 text-xs font-bold">✅ Подтвердить</button><button onclick="verifyPayment('${id}', false)" class="ig-btn-danger px-3 py-2 text-xs font-bold">❌ Отклонить</button>` : ''}</div></div>`).join('') || '<div class="text-center py-8 t2">Заявок не найдено</div>'}</div></div>`; 
+    }).map(([id,r]) => `<div class="ig-card p-3 rounded-xl space-y-2"><div class="flex items-center justify-between gap-2 flex-wrap"><span class="font-mono font-bold t1">${escapeHTML(r.code)}</span><span class="font-bold" style="color:#f59e0b">${Number(r.amount).toFixed(2)} AC</span></div><div class="text-xs t2">@${r.username} • ${new Date(r.timestamp).toLocaleString()}</div><div class="flex gap-2 flex-wrap"><span class="px-2 py-1 rounded-full text-[10px] font-semibold border" style="${r.status === 'pending' ? 'background:rgba(245,158,11,.15);color:#f59e0b;border-color:rgba(245,158,11,.4)' : r.status === 'approved' ? 'background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)' : 'background:rgba(237,73,86,.15);color:#ed4956;border-color:rgba(237,73,86,.4)'}">${r.status}</span>${r.status === 'pending' ? `<button onclick="verifyPayment('${id}', true)" class="ig-btn px-3 py-2 text-xs font-bold">✅ Подтвердить</button><button onclick="verifyPayment('${id}', false)" class="ig-btn-danger px-3 py-2 text-xs font-bold">❌ Отклонить</button>` : ''}</div></div>`).join('') || '<div class="text-center py-8 t2">Заявок не найдено</div>'}</div></div>`; 
   } else if (tab === 'rates') { 
     c.innerHTML = `<div class="space-y-4">
 <div class="p-4 rounded-xl border space-y-2" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.06)">
@@ -1245,7 +1245,7 @@ function renderAdminTabContent() {
 <div class="bg-field p-3 rounded-xl border b-ig"><div class="text-[10px] t2">SYP за $1</div><div class="text-lg font-extrabold font-mono" style="color:#f59e0b">${EXCHANGE_RATES.SYP}</div></div>
 <div class="bg-field p-3 rounded-xl border b-ig"><div class="text-[10px] t2">TRY за $1 (USD/TRY)</div><div class="text-lg font-extrabold font-mono" style="color:#f59e0b">${EXCHANGE_RATES.TRY}</div></div>
 </div>
-<div class="text-[10px] t2 font-mono">Источник: sp-proxy.mikevasovsky3.workers.dev • Обновлено: ${lastRatesUpdate ? lastRatesUpdate.toLocaleTimeString() : '—'} • Авто каждые 5 минут</div>
+<div class="text-[10px] t2 font-mono">Источник: open.er-api.com • Обновлено: ${lastRatesUpdate ? lastRatesUpdate.toLocaleTimeString() : '—'} • Авто каждые 5 минут</div>
 </div>
 <div class="p-4 rounded-xl border space-y-3" style="border-color:rgba(147,51,234,.3);background:rgba(147,51,234,.06)">
 <div class="font-bold t1 text-xs">Ручная корректировка (админ):</div>
@@ -1326,7 +1326,7 @@ function buildWhatsAppMessage(ad, inQ, rank) {
 
   if (isTr) {
     let msg = `Merhaba!\n`;
-    msg += `*Avita Turk* üzerindeki ilanınızla ilgileniyorum:\n`;
+    msg += `*Avito Türk* üzerindeki ilanınızla ilgileniyorum:\n`;
     msg += `📦 *${ad.title}* (Kod: ${ad.id})\n`;
     msg += `💰 *Fiyat:* ${priceStr}\n`;
     if (inQ && rank > 0) msg += `👥 *Sıra Numaram:* No ${rank}\n`;
@@ -1335,7 +1335,7 @@ function buildWhatsAppMessage(ad, inQ, rank) {
     return encodeURIComponent(msg);
   } else {
     let msg = `Здравствуйте!\n`;
-    msg += `Меня заинтересовало ваше объявление на *Avita Turk*:\n`;
+    msg += `Меня заинтересовало ваше объявление на *Avito Türk*:\n`;
     msg += `📦 *${ad.title}* (ID: ${ad.id})\n`;
     msg += `💰 *Цена:* ${priceStr}\n`;
     if (inQ && rank > 0) msg += `👥 *Мой номер в очереди:* №${rank}\n`;
@@ -1363,7 +1363,7 @@ async function openAdDetail(adId, countView = true) {
   const rawKunya = getSellerKunya(ad);
   const avatar = getSellerAvatar(ad);
   const verified = getSellerVerified(ad);
-  const rawRegion = REGION_NAMES[ad.region] || ad.region || 'Сирия';
+  const rawRegion = REGION_NAMES[ad.region] || ad.region || 'Турция';
   const converted = convertPriceAll(ad.price, ad.currency, ad.isFree, ad.isNegotiable);
   const queueList = ad.queue || [];
   const inQ = currentUser && queueList.some(q => q.username === currentUser.username);
@@ -1546,7 +1546,7 @@ ${!isRealOwner && !ad.isFree ? `
   openModal('modal-ad-detail');
   
 setTimeout(async () => {
-    initDetailMap(ad.lat || 33.5138, ad.lng || 36.2765);
+    initDetailMap(ad.lat || 41.0082, ad.lng || 28.9784);
     const titleEl = byId('detail-ad-title');
     const descEl = byId('detail-ad-desc');
     
@@ -1699,10 +1699,10 @@ function openProfileModal() {
                 </div>
                 <div class="min-w-0">
                     <div class="text-sm font-bold t1 truncate flex items-center gap-1.5">
-                        <span class="truncate">${currentUser.kunya || currentUser.username}</span>
+                        <span class="truncate">${escapeHTML(currentUser.kunya || currentUser.username)}</span>
                         <span class="text-[9px] px-1.5 py-0.2 rounded bg-card border b-ig t2 shrink-0">${currentUser.role}</span>
                     </div>
-                    <div class="text-[11px] t2 truncate">@${currentUser.username} • ${currentUser.whatsapp || 'WhatsApp'}</div>
+                    <div class="text-[11px] t2 truncate">@${escapeHTML(currentUser.username)} • ${escapeHTML(currentUser.whatsapp || 'WhatsApp')}</div>
                     <div class="flex gap-2 text-[10px] t1 pt-0.5">
                         <span><b>${myAds.length}</b> ${t('объявл.')}</span>
                         <span>• <b>${totalLikes}</b> ${t('лайков')}</span>
@@ -1759,7 +1759,7 @@ function openProfileModal() {
         <div class="space-y-1.5 pt-1">
             ${isAdmin ? `<button onclick="openAdminPanel()" class="ig-btn w-full py-2 text-xs font-bold flex items-center justify-center gap-2"><i class="fa-solid fa-user-shield"></i> ${t('Панель Администратора')}</button>` : ''}
             <div class="flex gap-2">
-                <button onclick="openEditProfileModal('${currentUser.username}')" class="flex-1 ig-btn-outline py-2 text-xs font-semibold"><i class="fa-solid fa-pen-to-square"></i> ${t('Изменить анкету')}</button>
+                <button onclick="openEditProfileModal('${jsArg(currentUser.username)}')" class="flex-1 ig-btn-outline py-2 text-xs font-semibold"><i class="fa-solid fa-pen-to-square"></i> ${t('Изменить анкету')}</button>
                 <button onclick="logout()" class="ig-btn-danger px-3.5 py-2 text-xs font-semibold"><i class="fa-solid fa-right-from-bracket"></i> ${t('Выйти')}</button>
             </div>
         </div>
@@ -1876,7 +1876,7 @@ function handleSaveProfile(e) {
   const u = users[idx]; u.username = nl; 
   if (npRaw && npRaw.trim()) { 
     sha256(npRaw.trim()).then(hashed => { 
-      u.passwordHash = hashed; finalizeProfileSave(u, orig, nl, nk, nw, na); 
+      u._pendingPasswordHash = hashed; finalizeProfileSave(u, orig, nl, nk, nw, na); 
     }); 
   } else { 
     finalizeProfileSave(u, orig, nl, nk, nw, na); 
@@ -1891,17 +1891,12 @@ async function finalizeProfileSave(u, orig, nl, nk, nw, na) {
       showToast('Этот номер WhatsApp уже используется другим пользователем!', 'error'); return; 
     } 
   }
-  let safeRole = u.role || 'USER'; let safePasswordHash = u.passwordHash;
-  if (supabaseClient && u.uid) { 
-    try { 
-      const { data: cloudData } = await supabaseClient.from('users').select('role, password_hash').eq('uid', u.uid).single(); 
-      if (cloudData) { 
-        safeRole = cloudData.role || 'USER'; 
-        if (cloudData.password_hash) safePasswordHash = cloudData.password_hash; 
-      } 
-    } catch (e) { console.warn('Security check failed', e); } 
+  const pendingNewHash = u._pendingPasswordHash || null; delete u._pendingPasswordHash;
+  if (pendingNewHash && supabaseClient && u.uid) {
+    const { data: pw } = await supabaseClient.rpc('change_password', { p_new_hash: pendingNewHash });
+    if (!pw || !pw.success) { showToast((pw && pw.error) || 'Не удалось сменить пароль', 'error'); return; }
   }
-  u.role = safeRole; u.passwordHash = safePasswordHash;
+  u.role = u.role || 'USER';
   if (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN') && currentUser.uid !== u.uid) { 
     u.gender = byId('edit-profile-gender').value; 
     u.role = byId('edit-profile-role').value; 
@@ -1916,8 +1911,7 @@ async function finalizeProfileSave(u, orig, nl, nk, nw, na) {
       username: u.username,
       kunya: u.kunya,
       whatsapp: u.whatsapp,
-      avatar: u.avatar,
-      password_hash: u.passwordHash
+      avatar: u.avatar
     }).eq('uid', u.uid);
   }
 
@@ -2281,7 +2275,7 @@ function drawGiftCard(code, amount, expiresAt) {
   ctx.textAlign = 'center'; 
   ctx.fillStyle = '#fbbf24'; 
   ctx.font = 'bold 46px Arial'; 
-  ctx.fillText('AVITO SHAM', 450, 160); 
+  ctx.fillText('AVITO TÜRK', 450, 160); 
   ctx.fillStyle = '#fff'; 
   ctx.font = 'bold 76px Arial'; 
   ctx.fillText('ПОДАРОК', 450, 330); 
@@ -2336,7 +2330,7 @@ function openTransferModal() {
   const available = users.filter(u => (u.uid || u.username) !== currentId);
 
   select.innerHTML = available.length
-    ? available.map(u => `<option value="${u.uid || u.username}">${u.kunya || u.username} (@${u.username})</option>`).join('')
+    ? available.map(u => `<option value="${u.uid || u.username}">${escapeHTML(u.kunya || u.username)} (@${escapeHTML(u.username)})</option>`).join('')
     : '<option value="">Нет доступных получателей</option>';
 
   byId('transfer-amount').value = '';
@@ -2408,7 +2402,7 @@ function downloadGiftCard() {
   const canvas = byId('gift-card-canvas'); 
   if (!canvas) return; 
   const link = document.createElement('a'); 
-  link.download = 'AvitoSham-Gift-Code.png'; 
+  link.download = 'AvitoTurk-Gift-Code.png'; 
   link.href = canvas.toDataURL('image/png'); 
   link.click(); 
 }
@@ -2417,10 +2411,10 @@ async function shareGiftCard() {
   const canvas = byId('gift-card-canvas'); 
   if (!canvas) return; 
   canvas.toBlob(async blob => { 
-    const file = new File([blob], 'AvitoSham-Gift-Code.png', { type: 'image/png' }); 
+    const file = new File([blob], 'AvitoTurk-Gift-Code.png', { type: 'image/png' }); 
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) { 
       try { 
-        await navigator.share({ title: 'Подарочный код Avito Sham', text: byId('gift-code-label').innerText, files: [file] }); 
+        await navigator.share({ title: 'Подарочный код Avito Türk', text: byId('gift-code-label').innerText, files: [file] }); 
         return; 
       } catch (e) { 
         if (e.name === 'AbortError') return; 
@@ -2545,7 +2539,7 @@ async function verifyPayment(requestId, approve) {
       id: txId,
       type: 'topup',
       amount: addedAmount,
-      senderUsername: 'AvitoSham (Admin)',
+      senderUsername: 'Avito Türk (Admin)',
       recipientUsername: targetUser.username,
       recipientUid: targetUser.uid || '',
       note: `Пополнение AvitoCash (код ${req.code})`,
@@ -2555,11 +2549,7 @@ async function verifyPayment(requestId, approve) {
     TRANSACTIONS[txId] = receiptItem;
 
     if (supabaseClient) {
-      if (targetUser.uid) {
-        await supabaseClient.from('users').update({ avitocash_balance: newBal, receipts: targetUser.receipts }).eq('uid', targetUser.uid);
-      } else {
-        await supabaseClient.from('users').update({ avitocash_balance: newBal, receipts: targetUser.receipts }).eq('username', targetUser.username);
-      }
+      await supabaseClient.rpc('charge_avitocash', { p_user_identifier: targetUser.uid || targetUser.username, p_amount: addedAmount, p_action: 'ADD', p_reason: 'Пополнение AvitoCash' });
     }
 
     if (currentUser && ((currentUser.uid && currentUser.uid === targetUser.uid) || currentUser.username === targetUser.username)) {
@@ -2655,7 +2645,7 @@ if (targetUser.shop) {
 function initShopCreateMap() { 
   const el = byId('shop-create-map'); 
   if (!el || typeof L === 'undefined') return; 
-  const lat = parseFloat(byId('shop-lat').value || 33.5138), lng = parseFloat(byId('shop-lng').value || 36.2765); 
+  const lat = parseFloat(byId('shop-lat').value || 41.0082), lng = parseFloat(byId('shop-lng').value || 28.9784); 
   if (!shopCreateMap) { 
     shopCreateMap = L.map('shop-create-map').setView([lat, lng], 12); 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(shopCreateMap); 
@@ -2678,7 +2668,7 @@ function initShopCreateMap() {
 }
 
 function handleShopRegionMapUpdate(code) { 
-  const c = REGION_COORDS[code] || [33.5138, 36.2765]; 
+  const c = REGION_COORDS[code] || [41.0082, 28.9784]; 
   byId('shop-lat').value = c[0]; 
   byId('shop-lng').value = c[1]; 
   if (shopCreateMap && shopCreateMarker) { 
@@ -2708,8 +2698,8 @@ async function handleCreateShopSubmit(e) {
     whatsapp: byId('shop-whatsapp').value.trim(),
     desc: byId('shop-desc').value.trim(),
     logo: byId('shop-logo-data').value || null,
-    lat: parseFloat(byId('shop-lat').value || 33.5138),
-    lng: parseFloat(byId('shop-lng').value || 36.2765),
+    lat: parseFloat(byId('shop-lat').value || 41.0082),
+    lng: parseFloat(byId('shop-lng').value || 28.9784),
     customCategories: prevShop ? (prevShop.customCategories || []) : [],
     isVerified: prevShop ? !!(existing.verifiedShop || prevShop.isVerified) : false,
     createdAt: prevShop ? (prevShop.createdAt || Date.now()) : Date.now()
@@ -2756,14 +2746,8 @@ async function adminVerifyShop(userUid, status) {
   u.shop.isVerified = Boolean(status);
 
   if (supabaseClient) {
-    supabaseClient
-      .from('users')
-      .update({
-        verified_shop: u.verifiedShop,
-        shop: u.shop
-      })
-      .eq('uid', userUid)
-      .then();
+    supabaseClient.rpc('admin_manage_user', { p_target_uid: userUid, p_verified_shop: u.verifiedShop }).then(() => {}, () => {});
+    supabaseClient.rpc('update_user_shop', { p_identifier: userUid, p_shop_data: u.shop }).then(() => {}, () => {});
   }
 
   renderAdminTabContent();
@@ -2985,10 +2969,10 @@ function openShopShowcase(shopUserUid, filterStoreCat = 'ALL') {
   <div class="flex items-center gap-3">
     <div class="w-16 h-16 rounded-2xl bg-field border b-ig overflow-hidden shrink-0 flex items-center justify-center t2">${shop.logo ? `<img src="${shop.logo}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-store text-2xl"></i>'}</div>
     <div>
-<h3 class="text-base font-extrabold t1 flex items-center gap-1.5"><span>${shop.name}</span> ${IGSVG.verified()}</h3>
-      <p id="showcase-shop-slogan" class="text-xs t2">${shop.slogan || ''}</p>
+<h3 class="text-base font-extrabold t1 flex items-center gap-1.5"><span>${escapeHTML(shop.name)}</span> ${IGSVG.verified()}</h3>
+      <p id="showcase-shop-slogan" class="text-xs t2">${escapeHTML(shop.slogan || '')}</p>
       <div class="flex items-center gap-2 text-[10px] t2 mt-1 flex-wrap"><span><i class="fa-solid fa-location-dot" style="color:#f59e0b"></i> ${regionName}${shop.address ? ', ' + shop.address : ''}</span>${shop.hours ? `<span>• <i class="fa-solid fa-clock"></i> ${shop.hours}</span>` : ''}<span>• <i class="fa-solid fa-boxes-stacked"></i> ${shopAds.length} ${t('объявл.')}</span></div>
-      <p id="showcase-shop-desc" class="text-[11px] t1 mt-1.5 leading-relaxed bg-field p-2.5 rounded-xl border b-ig">${shop.desc || ''}</p>
+      <p id="showcase-shop-desc" class="text-[11px] t1 mt-1.5 leading-relaxed bg-field p-2.5 rounded-xl border b-ig">${escapeHTML(shop.desc || '')}</p>
 	  </div>
   </div>
   <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
@@ -3022,11 +3006,11 @@ ${cats.length > 0 ? `<div class="flex items-center gap-1.5 overflow-x-auto pb-1 
   <div onclick="openAdDetail('${ad.id}')" class="cursor-pointer space-y-2">
     <div class="h-28 rounded-lg overflow-hidden bg-black relative">
       <img src="${ad.images ? ad.images[0] : ad.image}" class="w-full h-full object-cover">
-      ${ad.storeCategory ? `<span class="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style="background:rgba(147,51,234,.85)">${ad.storeCategory}</span>` : ''}
+      ${ad.storeCategory ? `<span class="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style="background:rgba(147,51,234,.85)">${escapeHTML(ad.storeCategory)}</span>` : ''}
       ${ad.oldPrice && ad.oldPrice > ad.price ? `<span class="absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style="background:#ef4444">-%${Math.round((1 - ad.price / ad.oldPrice) * 100)}</span>` : ''}
     </div>
     <div>
-      <div id="showcase-item-title-${ad.id}" class="font-bold t1 text-xs truncate">${ad.title}</div>
+      <div id="showcase-item-title-${ad.id}" class="font-bold t1 text-xs truncate">${escapeHTML(ad.title)}</div>
       <div class="text-[11px] font-extrabold mt-0.5" style="color:#f59e0b">${convertPriceAll(ad.price, ad.currency, ad.isFree, ad.isNegotiable)}</div>
     </div>
   </div>
@@ -3049,7 +3033,7 @@ ${cats.length > 0 ? `<div class="flex items-center gap-1.5 overflow-x-auto pb-1 
 </div>`; 
 
   openModal('modal-shop-showcase'); 
-  setTimeout(() => initShowcaseShopMap(shop.lat || 33.5138, shop.lng || 36.2765, shop.name), 200); 
+  setTimeout(() => initShowcaseShopMap(shop.lat || 41.0082, shop.lng || 28.9784, shop.name), 200); 
 
 if (typeof translateDynamic === 'function') {
     if (shop.slogan) {
@@ -3119,8 +3103,8 @@ function startShopAuction(adId) {
   if (!ad) return;
   const currentPrice = Number(ad.price || 0);
   const promptMsg = currentLang === 'tr' 
-    ? `"${ad.title}" ürünü için açık artırma başlangıç fiyatını girin ($):` 
-    : `Укажите начальную цену для аукциона товара "${ad.title}" ($):`;
+    ? `"${escapeHTML(ad.title)}" ürünü için açık artırma başlangıç fiyatını girin ($):` 
+    : `Укажите начальную цену для аукциона товара "${escapeHTML(ad.title)}" ($):`;
   const startPriceStr = prompt(promptMsg, currentPrice ? (currentPrice * 0.8).toFixed(2) : '10');
   if (!startPriceStr) return;
   const startPrice = parseFloat(startPriceStr);
@@ -3176,7 +3160,7 @@ const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
 <div class="flex items-center justify-between border-b b-ig pb-3">
 <div class="flex items-center gap-3">
 <div class="w-14 h-14 rounded-2xl bg-field border b-ig overflow-hidden shrink-0 flex items-center justify-center t2">${shop.logo ? `<img src="${shop.logo}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-store text-xl"></i>'}</div>
-<div><h3 class="text-base font-extrabold t1 leading-snug">${shop.name}</h3><p class="text-xs t2 mt-0.5">${shop.slogan || ''}</p><div class="text-[10px] t2 mt-0.5"><i class="fa-solid fa-location-dot" style="color:#f59e0b"></i> ${regionName}</div></div>
+<div><h3 class="text-base font-extrabold t1 leading-snug">${escapeHTML(shop.name)}</h3><p class="text-xs t2 mt-0.5">${escapeHTML(shop.slogan || '')}</p><div class="text-[10px] t2 mt-0.5"><i class="fa-solid fa-location-dot" style="color:#f59e0b"></i> ${regionName}</div></div>
 </div>
 <div class="flex flex-col items-end gap-1.5">
 <span class="px-3 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5" style="${isVerified ? 'background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)' : 'background:rgba(245,158,11,.15);color:#f59e0b;border-color:rgba(245,158,11,.4)'}"><i class="fa-solid ${isVerified ? 'fa-circle-check' : 'fa-hourglass-half'}"></i> ${isVerified ? (isTr ? 'Onaylı' : 'Подтвержден') : (isTr ? 'İnceleniyor' : 'На проверке')}</span>
@@ -3192,7 +3176,7 @@ const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
 
 ${myCombos.length > 0 ? `<div class="p-4 rounded-2xl border space-y-2" style="border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.06)">
 <h4 class="font-extrabold t1 text-xs flex items-center gap-1.5"><i class="fa-solid fa-fire" style="color:#f97316"></i> ${isTr ? 'Kampanyalarım' : 'Мои акции'} (${myCombos.length})</h4>
-${myCombos.map(x => `<div class="bg-field p-2.5 rounded-xl border b-ig flex items-center justify-between gap-2"><div class="min-w-0"><div id="myshop-combo-title-${x.id}" class="font-bold t1 text-xs truncate">${x.title}</div><div class="text-[10px] t2">${x.items.length} ${isTr ? 'ilan' : 'объявл.'} • ${isTr ? 'Kampanya Fiyatı:' : 'Цена акции:'} <b style="color:#f97316">$${Number(x.price).toFixed(2)}</b></div></div><div class="flex gap-1.5 shrink-0"><button onclick="openComboBuilder(null,'${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold border" style="color:#f97316;border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.12)"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteComboWithConfirm('${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold" style="color:#ed4956;background:rgba(237,73,86,.12)"><i class="fa-solid fa-trash"></i></button></div></div>`).join('')}
+${myCombos.map(x => `<div class="bg-field p-2.5 rounded-xl border b-ig flex items-center justify-between gap-2"><div class="min-w-0"><div id="myshop-combo-title-${x.id}" class="font-bold t1 text-xs truncate">${escapeHTML(x.title)}</div><div class="text-[10px] t2">${x.items.length} ${isTr ? 'ilan' : 'объявл.'} • ${isTr ? 'Kampanya Fiyatı:' : 'Цена акции:'} <b style="color:#f97316">$${Number(x.price).toFixed(2)}</b></div></div><div class="flex gap-1.5 shrink-0"><button onclick="openComboBuilder(null,'${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold border" style="color:#f97316;border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.12)"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="deleteComboWithConfirm('${x.id}')" class="px-2 py-1 rounded-lg text-[10px] font-bold" style="color:#ed4956;background:rgba(237,73,86,.12)"><i class="fa-solid fa-trash"></i></button></div></div>`).join('')}
 </div>` : ''}
 
 ${(() => {
@@ -3238,12 +3222,12 @@ ${shopAds.length === 0 ? `<div class="text-center py-4 t2">${isTr ? 'Henüz ür�
       <div class="flex items-center gap-2 min-w-0">
         <img src="${a.images ? a.images[0] : a.image}" class="w-10 h-10 rounded-lg object-cover border b-ig shrink-0">
 <div class="min-w-0">
-          <div id="myshop-ad-title-${a.id}" class="font-bold t1 text-xs truncate">${a.title}</div>
+          <div id="myshop-ad-title-${a.id}" class="font-bold t1 text-xs truncate">${escapeHTML(a.title)}</div>
           <div class="text-[10px] font-semibold" style="color:#f59e0b">${convertPriceAll(a.price, a.currency, a.isFree, a.isNegotiable)}</div>
         </div>
 		</div>
       <div class="flex items-center gap-1 shrink-0">
-        ${a.storeCategory ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(147,51,234,.15);color:#c084fc">${a.storeCategory}</span>` : ''}
+        ${a.storeCategory ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(147,51,234,.15);color:#c084fc">${escapeHTML(a.storeCategory)}</span>` : ''}
         ${a.status === 'SOLD' ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background:rgba(16,185,129,.15);color:#10b981">${isTr ? 'Satıldı' : 'Продано'}</span>` : ''}
       </div>
     </div>
@@ -3401,7 +3385,7 @@ async function exportFullDatabaseJSON() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `AvitoSham_FullMedia_DB_${Date.now()}.json`;
+    link.download = `AvitoTurk_FullMedia_DB_${Date.now()}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -3472,8 +3456,8 @@ function importFullDatabaseJSON(event) {
             description: a.desc || a.description || '',
             images: newUrls,
             image: newUrls[0] || a.image,
-            lat: Number(a.lat || 33.5138),
-            lng: Number(a.lng || 36.2765),
+            lat: Number(a.lat || 41.0082),
+            lng: Number(a.lng || 28.9784),
             seller_username: a.sellerUsername || a.seller_username || '',
             seller_uid: a.sellerUid || a.seller_uid || '',
             seller_kunya: a.sellerKunya || a.seller_kunya || '',
@@ -3567,7 +3551,7 @@ async function recreateAndDownloadBackup(id) {
       const d = { version: '3.1', type: 'AVITO_SHAM_FULL_PLATFORM_BACKUP', exportDate: new Date().toISOString(), users, archivedUsers, ads, categories, combos, rates: EXCHANGE_RATES, reports: reports };
       const a = document.createElement('a');
       a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(d, null, 2));
-      a.download = `AvitoSham_FullDB_${id}_${Date.now()}.json`;
+      a.download = `AvitoTurk_FullDB_${id}_${Date.now()}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       showToast('Снимок сгенерирован', 'success');
     } else if (meta.type === 'shop') {
@@ -3751,15 +3735,15 @@ ${imgs.length > 1 ? `<button type="button" onclick="event.stopPropagation(); cha
 <div class="flex flex-col p-4 space-y-3 text-sm overflow-y-auto max-h-[90vh] modal-scroll-body">
 <div class="flex items-center gap-3 pb-3 border-b b-ig shrink-0">
 <div class="w-9 h-9 rounded-full overflow-hidden border b-ig bg-field flex items-center justify-center t2">${shop?.logo ? `<img src="${shop.logo}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-store"></i>'}</div>
-<div class="flex-1 min-w-0"><div class="text-sm font-semibold t1 flex items-center gap-1.5">${shop?.name || v.sellerKunya} ${v.verified ? IGSVG.verified() : ''}</div><div class="text-xs t2">${regionName}</div></div>
+<div class="flex-1 min-w-0"><div class="text-sm font-semibold t1 flex items-center gap-1.5">${escapeHTML(shop?.name || v.sellerKunya)} ${v.verified ? IGSVG.verified() : ''}</div><div class="text-xs t2">${regionName}</div></div>
 </div>
-<h2 id="combo-detail-title" class="text-base font-bold t1">${c.title}</h2>
+<h2 id="combo-detail-title" class="text-base font-bold t1">${escapeHTML(c.title)}</h2>
 <div class="p-3 rounded-xl border b-ig bg-field space-y-1">
 <div class="text-lg font-extrabold" style="color:#f97316">$${Number(c.price).toFixed(2)} <span class="t2 text-xs font-normal">${isTr ? 'paket fiyatı' : 'цена комплекта'}</span></div>
 <div class="text-xs t2">${isTr ? 'Ayrı ayrı:' : 'По отдельности:'} <s>$${v.comboOriginalTotal.toFixed(2)}</s>${save > 0 ? ` • <b style="color:#10b981">${isTr ? 'kazanç' : 'выгода'} $${save.toFixed(2)}</b>` : ''}</div>
 </div>
 <div class="space-y-2"><div class="text-xs font-bold t2 uppercase tracking-wide">${isTr ? 'Paket İçeriği:' : 'Состав комбо-набора:'}</div>
-${v.comboItems.map((it, idx) => `<div onclick="openAdDetail('${it.id}')" class="bg-field p-2.5 rounded-xl border b-ig hover:bg-ig flex items-center gap-3 cursor-pointer"><img src="${(it.images && it.images[0]) || it.image}" class="w-11 h-11 rounded-lg object-cover border b-ig shrink-0"><div class="flex-1 min-w-0"><div id="combo-item-title-${idx}" class="font-bold t1 text-xs truncate">${it.title}</div><div class="text-[10px] t2">${it.city || ''}</div></div><div class="text-[11px] font-bold t1 shrink-0">${convertPriceAll(it.price, it.currency, it.isFree, it.isNegotiable)}</div></div>`).join('')}
+${v.comboItems.map((it, idx) => `<div onclick="openAdDetail('${it.id}')" class="bg-field p-2.5 rounded-xl border b-ig hover:bg-ig flex items-center gap-3 cursor-pointer"><img src="${(it.images && it.images[0]) || it.image}" class="w-11 h-11 rounded-lg object-cover border b-ig shrink-0"><div class="flex-1 min-w-0"><div id="combo-item-title-${idx}" class="font-bold t1 text-xs truncate">${escapeHTML(it.title)}</div><div class="text-[10px] t2">${it.city || ''}</div></div><div class="text-[11px] font-bold t1 shrink-0">${convertPriceAll(it.price, it.currency, it.isFree, it.isNegotiable)}</div></div>`).join('')}
 </div>
 <div class="flex gap-2 pt-2">
 <a href="https://wa.me/${(wa || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}" target="_blank" class="flex-1 py-3 rounded-lg text-white text-xs font-extrabold flex items-center justify-center gap-2" style="background:#25D366"><i class="fa-brands fa-whatsapp text-lg"></i> ${isTr ? 'Seti WhatsApp ile Sipariş Et' : 'Заказать комплект'}</a>
@@ -3797,12 +3781,12 @@ function sendPriceOffer(adId) {
   const wa = getSellerWhatsapp(ad); 
   const isTr = currentLang === 'tr';
   const sender = currentUser 
-    ? (currentUser.whatsapp ? `${currentUser.kunya || currentUser.username} (${currentUser.whatsapp})` : currentUser.username) 
+    ? (currentUser.whatsapp ? `${escapeHTML(currentUser.kunya || currentUser.username)} (${currentUser.whatsapp})` : currentUser.username) 
     : (isTr ? 'Platform Ziyaretçisi' : 'Гость платформы'); 
   
   const msg = isTr 
-    ? `Merhaba!\n*Avita Turk* üzerindeki "${ad.title}" (Kod: ${ad.id}) ilanınız için fiyat teklifim: $${parseFloat(val).toFixed(2)}.\n👤 *Gönderen:* ${sender}`
-    : `Здравствуйте!\nПо объявлению "${ad.title}" (${ad.id}) на *Avita Turk* предлагаю цену: $${parseFloat(val).toFixed(2)}.\n👤 *От:* ${sender}`; 
+    ? `Merhaba!\n*Avito Türk* üzerindeki "${ad.title}" (Kod: ${ad.id}) ilanınız için fiyat teklifim: $${parseFloat(val).toFixed(2)}.\n👤 *Gönderen:* ${sender}`
+    : `Здравствуйте!\nПо объявлению "${ad.title}" (${ad.id}) на *Avito Türk* предлагаю цену: $${parseFloat(val).toFixed(2)}.\n👤 *От:* ${sender}`; 
 
 window.open(`https://wa.me/${(wa || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank'); 
   showToast(isTr ? 'Fiyat teklifi WhatsApp üzerinden gönderiliyor...' : 'Ваше предложение цены отправляется через WhatsApp', 'success'); 

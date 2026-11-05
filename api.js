@@ -6,19 +6,24 @@ let currentUser = null;
 let pendingRegVerification = null;
 let supabaseClient = null;
 
-// Обращение через прокси для обхода блокировок сети
-// Исправленный рабочий URL и ключ
-// Обращение через прокси для обхода блокировок сети
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const SUPABASE_URL = isLocal 
-  ? "https://mmespmwztxkjxhwmsgjn.supabase.co" 
-  : `${window.location.origin}/supabase-api`;
-
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tZXNwbXd6dHhranhod21zZ2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MzY5MzgsImV4cCI6MjEwMzUxMjkzOH0.wz8lllymLmmleherQwR2oqcYQbtXz8P_VqUU8xVhxE4";
+const _CFG = (typeof window !== 'undefined' && window.AVITO_CONFIG) || {};
+const SUPABASE_DIRECT_URL = (_CFG.SUPABASE_URL || '').replace(/\/+$/, '');
+const SUPABASE_ANON_KEY = _CFG.SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = (_CFG.USE_PROXY && SUPABASE_DIRECT_URL) ? `${window.location.origin}/supabase-api` : SUPABASE_DIRECT_URL;
+const SUPABASE_CONFIGURED = !!(SUPABASE_DIRECT_URL && SUPABASE_ANON_KEY);
 try {
-  if (typeof window.supabase !== 'undefined') {
+  if (SUPABASE_CONFIGURED && typeof window.supabase !== 'undefined') {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true }
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        // Токен сессии Avito Türk подтверждает личность на сервере (RLS)
+        fetch: (input, init = {}) => {
+          const headers = new Headers(init.headers || {});
+          const tok = (typeof currentUser !== 'undefined' && currentUser && currentUser.session_token) || '';
+          if (tok) headers.set('x-avito-token', tok);
+          return fetch(input, { ...init, headers });
+        }
+      }
     });
   }
 } catch (e) {
@@ -28,6 +33,7 @@ try {
 function fixDirectImageUrl(url) {
   if (!url || typeof url !== 'string') return url;
   let clean = url.trim();
+  if (!/^(https?:\/\/|data:image\/(png|jpe?g|webp|gif);base64,|\/)/i.test(clean)) return '';
   if (clean.includes('ibb.co/') && !clean.includes('i.ibb.co/')) {
     const id = clean.split('ibb.co/').pop().split('/')[0].split('?')[0];
     if (id) return `https://i.ibb.co/${id}/image.jpg`;
@@ -68,9 +74,30 @@ function validateWhatsApp(number) {
 async function initSupabaseSync() {
   if (!supabaseClient) return;
   try {
-const userQuery = currentUser?.uid 
-      ? supabaseClient.from('users').select('*').eq('uid', currentUser.uid)
-      : Promise.resolve({ data: [] });
+const isAdminUser = !!(currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN'));
+    const PUBLIC_USER_COLS = 'uid,username,kunya,gender,whatsapp,avatar,role,verified_shop,show_women_ads,frozen,is_archived,shop,created_at';
+    const userQuery = (async () => {
+      let rows = [];
+      if (isAdminUser) {
+        const r = await supabaseClient.rpc('admin_list_users');
+        rows = Array.isArray(r.data) ? r.data : [];
+      }
+      if (!rows.length) {
+        const r = await supabaseClient.from('users').select(PUBLIC_USER_COLS);
+        rows = r.data || [];
+      }
+      if (currentUser?.session_token) {
+        const me = await supabaseClient.rpc('get_me');
+        if (me.data && me.data.uid) {
+          rows = rows.filter(x => x.uid !== me.data.uid);
+          rows.push(me.data);
+        } else if (me.data === null && me.error == null) {
+          // токен недействителен или просрочен — выходим из аккаунта
+          try { logout(); } catch (e) {}
+        }
+      }
+      return { data: rows };
+    })();
 
     const [usersRes, adsRes, combosRes, catsRes] = await Promise.allSettled([
       userQuery,
@@ -127,8 +154,8 @@ const userQuery = currentUser?.uid
           desc: a.description || a.desc || '',
           images: (Array.isArray(a.images) ? a.images : [a.image || '']).map(fixDirectImageUrl),
           image: fixDirectImageUrl(a.image || (Array.isArray(a.images) ? a.images[0] : null)),
-          lat: Number(a.lat) || 33.5138,
-          lng: Number(a.lng) || 36.2765,
+          lat: Number(a.lat) || 41.0082,
+          lng: Number(a.lng) || 28.9784,
           sellerUsername: a.seller_username,
           sellerUid: a.seller_uid,
           sellerKunya: a.seller_kunya,
@@ -206,8 +233,8 @@ async function uploadFileToSupabaseStorage(file, bucket = 'listings') {
   const compressed = await compressSingleImageFile(file, 1200, 1200, 0.75);
   const filePath = `ad_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
   
-  const directClient = (typeof window.supabase !== 'undefined')
-    ? window.supabase.createClient("https://mmespmwztxkjxhwmsgjn.supabase.co", SUPABASE_ANON_KEY)
+  const directClient = (SUPABASE_CONFIGURED && typeof window.supabase !== 'undefined')
+    ? window.supabase.createClient(SUPABASE_DIRECT_URL, SUPABASE_ANON_KEY)
     : supabaseClient;
 
   if (!directClient) throw new Error('Supabase client не инициализирован');
@@ -283,8 +310,8 @@ async function saveAdToSupabase(ad) {
     description: ad.desc || '',
     images: Array.isArray(ad.images) ? ad.images : [ad.image || ''],
     image: ad.image || (Array.isArray(ad.images) ? ad.images[0] : ''),
-    lat: Number(ad.lat || 33.5138),
-    lng: Number(ad.lng || 36.2765),
+    lat: Number(ad.lat || 41.0082),
+    lng: Number(ad.lng || 28.9784),
     seller_username: ad.sellerUsername || '',
     seller_uid: ad.sellerUid || '',
     seller_kunya: ad.sellerKunya || '',
@@ -481,18 +508,6 @@ async function fetchLiveExchangeRates(manual = false) {
         }
       }
     } catch(e) {}
-
-    if (!tryVal) {
-      const res2 = await fetch(`https://sp-proxy.mikevasovsky3.workers.dev/?_t=${Date.now()}`, { cache: 'no-store' });
-      if (res2.ok) {
-        const d2 = await res2.json();
-        const fx = d2?.overview?.global_fx || d2?.global_fx;
-        if (Array.isArray(fx)) {
-          const p = fx.find(g => String(g.pair || '').toUpperCase() === 'USD/TRY');
-          if (p) tryVal = parseFloat(p.rate);
-        }
-      }
-    }
 
     if (tryVal !== null && !isNaN(tryVal) && tryVal > 10 && tryVal < 100) {
       EXCHANGE_RATES.TRY = +tryVal.toFixed(2);
@@ -880,7 +895,7 @@ const devLbl = byId('ft-dev-label');
   const rulesModal = byId('modal-rules-agreement');
   if (rulesModal) {
     const rulesTitle = rulesModal.querySelector('h2');
-    if (rulesTitle) rulesTitle.innerText = isTr ? 'Avito Türk Kullanım Kuralları' : 'Правила и рекомендации Авито Шам';
+    if (rulesTitle) rulesTitle.innerText = isTr ? 'Avito Türk Kullanım Kuralları' : 'Правила и рекомендации Avito Türk';
     const rulesSub = rulesModal.querySelector('p.text-xs.font-semibold');
     if (rulesSub) rulesSub.innerText = isTr ? 'Ticareti dürüst yapın • Bol kazançlar!' : 'اتَّقُوا اللَّهَ فِي التِّجَارَةِ • Бойтесь Аллаха в торговле!';
     const rulesBody = rulesModal.querySelector('.modal-scroll-body');

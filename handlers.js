@@ -27,7 +27,7 @@ function showToast(message, type = 'info') {
   if (type === 'warning') icon = 'fa-triangle-exclamation'; 
   t.className = 'px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 pointer-events-auto shadow-xl'; 
   t.style.cssText = 'background:#262626;color:#fff;animation:cardIn .25s ease'; 
-  t.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`; 
+  const _ic = document.createElement('i'); _ic.className = 'fa-solid ' + icon; const _sp = document.createElement('span'); _sp.textContent = String(message); t.append(_ic, _sp); 
   c.appendChild(t); 
   setTimeout(() => { 
     t.style.opacity = '0'; 
@@ -118,11 +118,12 @@ function restoreUserSession() {
 function saveUserSession(user, remember = true) { 
   currentUser = user; 
   try { 
+    const { passwordHash, password_hash, ...safeUser } = user || {}; 
     if (remember) { 
-      localStorage.setItem('bs_current_user', JSON.stringify(user)); 
+      localStorage.setItem('bs_current_user', JSON.stringify(safeUser)); 
       sessionStorage.removeItem('bs_current_user'); 
     } else { 
-      sessionStorage.setItem('bs_current_user', JSON.stringify(user)); 
+      sessionStorage.setItem('bs_current_user', JSON.stringify(safeUser)); 
       localStorage.removeItem('bs_current_user'); 
     } 
   } catch (e) {} 
@@ -345,7 +346,7 @@ function openSupportModal() {
   const copySpan = byId('support-modal-copybtn')?.querySelector('span');
 
   if (titleEl) titleEl.innerText = t('Поддержка сервера — ShamCash');
-  if (descEl) descEl.innerText = t('Отсканируйте QR-код в приложении ShamCash, чтобы оплатить и поддержать платформу Авито Шам.');
+  if (descEl) descEl.innerText = t('Отсканируйте QR-код в приложении ShamCash, чтобы оплатить и поддержать платформу Avito Türk.');
   if (idLbl) idLbl.innerText = t('ID счёта ShamCash');
   if (copySpan) copySpan.innerText = t('Скопировать ID');
 
@@ -437,7 +438,7 @@ async function downloadShareCard() {
   const file = new File([lastShareBlob], 'avito-sham-card.jpg', { type: 'image/jpeg' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'Avito Sham Card' });
+      await navigator.share({ files: [file], title: 'Avito Türk Card' });
       closeModal('modal-share');
       return;
     } catch (err) {
@@ -609,7 +610,7 @@ function openCreateAdModal() {
   const onbC = byId('ad-onbehalf-container'), onbS = byId('ad-post-onbehalf'); 
   if (onbC && onbS) { 
     if (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN')) { 
-      onbS.innerHTML = `<option value="${currentUser.username}">Себя — ${currentUser.kunya || currentUser.username}</option>` + users.filter(u => u.username !== currentUser.username).map(u => `<option value="${u.username}">@${u.username} — ${u.kunya || 'без имени'}</option>`).join(''); 
+      onbS.innerHTML = `<option value="${escapeHTML(currentUser.username)}">Себя — ${escapeHTML(currentUser.kunya || currentUser.username)}</option>` + users.filter(u => u.username !== currentUser.username).map(u => `<option value="${escapeHTML(u.username)}">@${escapeHTML(u.username)} — ${u.kunya || 'без имени'}</option>`).join(''); 
       if (onBehalfPreset) { onbS.value = onBehalfPreset; onBehalfPreset = null; } 
       onbC.classList.remove('hidden'); 
     } else onbC.classList.add('hidden'); 
@@ -710,7 +711,7 @@ function initCreateMap() {
 }
 
 function handleRegionMapUpdate(code) { 
-  const c = REGION_COORDS[code] || [33.5138, 36.2765]; 
+  const c = REGION_COORDS[code] || [41.0082, 28.9784]; 
   byId('ad-lat').value = c[0]; 
   byId('ad-lng').value = c[1]; 
   if (createMap && createMarker) { 
@@ -798,7 +799,7 @@ async function handleCreateAdSubmit(e) {
   if (!imgs.length) imgs.push(PLACEHOLDER_IMG);
 
   const regionVal = byId('ad-region')?.value || 'DAM';
-  const cityVal = byId('ad-city')?.value.trim() || REGION_NAMES[regionVal] || 'Дамаск';
+  const cityVal = byId('ad-city')?.value.trim() || REGION_NAMES[regionVal] || 'İstanbul';
 
   const adId = 'AD-' + Date.now().toString(36).toUpperCase();
   const newAd = {
@@ -816,8 +817,8 @@ async function handleCreateAdSubmit(e) {
     desc: byId('ad-desc').value.trim(),
     images: imgs,
     image: imgs[0],
-    lat: parseFloat(byId('ad-lat')?.value || 33.5138),
-    lng: parseFloat(byId('ad-lng')?.value || 36.2765),
+    lat: parseFloat(byId('ad-lat')?.value || 41.0082),
+    lng: parseFloat(byId('ad-lng')?.value || 28.9784),
     sellerUsername: postingUser.username,
     sellerUid: postingUser.uid || '',
     sellerKunya: postingUser.kunya || postingUser.username,
@@ -929,7 +930,7 @@ function openEditAdModal(adId) {
   const ownerSelect = byId('edit-ad-seller-username');
   if (ownerContainer && ownerSelect) {
     if (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN') {
-      ownerSelect.innerHTML = users.map(u => `<option value="${u.username}">@${u.username} — ${u.kunya || 'без имени'}</option>`).join('');
+      ownerSelect.innerHTML = users.map(u => `<option value="${escapeHTML(u.username)}">@${escapeHTML(u.username)} — ${u.kunya || 'без имени'}</option>`).join('');
       ownerSelect.value = ad.sellerUsername || currentUser.username;
       ownerContainer.classList.remove('hidden');
     } else {
@@ -1471,6 +1472,7 @@ async function handleAuthSubmit(e) {
 }
 
 function logout() {
+  try { if (supabaseClient && currentUser && currentUser.session_token) supabaseClient.rpc('logout').then(() => {}, () => {}); } catch (e) {}
   currentUser = null;
   localStorage.removeItem('bs_current_user');
   sessionStorage.removeItem('bs_current_user');

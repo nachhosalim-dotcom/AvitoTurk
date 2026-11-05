@@ -11,6 +11,14 @@ function escapeHTML(str) {
     '"': '&quot;'
   }[tag] || tag));
 }
+/* Безопасная строка для JS-аргумента внутри HTML-атрибута onclick='...' */
+function jsArg(v) {
+  return escapeHTML(String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' '));
+}
+/* Разрешаем только http(s)-ссылки на картинки (защита от javascript:/data: подмен) */
+function safeUrl(u) {
+  try { const x = new URL(String(u), location.origin); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch (e) { return ''; }
+}
 const _savedLayout = localStorage.getItem('bs_feed_layout') || 'instagram';
 const _isDesktopInit = typeof window !== 'undefined' && window.innerWidth >= 1024;
 let selectedCategory = 'all', currentPage = 1, itemsPerPage = _savedLayout === 'list' ? (_isDesktopInit ? 18 : 10) : (_savedLayout === 'grid' ? (_isDesktopInit ? 24 : 12) : (_isDesktopInit ? 16 : 8)), favorites = [];
@@ -114,7 +122,7 @@ const IGSVG = {
 const byId = id => document.getElementById(id);
 const _0xSCAdmin = () => !!(currentUser && currentUser.role === 'SUPERUSER');
 const _0xSCAmount = value => { const n = Number(value); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; };
-const _0xSCCode = () => 'SHAM-' + Math.random().toString(36).slice(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-4);
+const _0xSCCode = () => 'AVT-' + Math.random().toString(36).slice(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-4);
 const _0xSCBalance = uid => { const u = users.find(x => x.uid === uid) || (currentUser && currentUser.uid === uid ? currentUser : null); return Number(u?.avitocashBalance ?? u?.shamcashBalance ?? 0); };
 const _0xGiftCode = () => 'GIFT-' + Math.random().toString(36).slice(2, 7).toUpperCase() + '-' + Date.now().toString(36).slice(-5).toUpperCase();
 const _0xSCPrices = () => ({ adPrice: _0xSCAmount(AVITOCASH_PRICES.adPrice), shopSubscription: _0xSCAmount(AVITOCASH_PRICES.shopSubscription), editPrice: _0xSCAmount(AVITOCASH_PRICES.editPrice) });
