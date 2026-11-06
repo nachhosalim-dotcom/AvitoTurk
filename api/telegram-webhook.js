@@ -58,18 +58,24 @@ export default async function handler(req, res) {
       const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${bestPhoto.file_id}`);
       const fileJson = await fileRes.json();
 
-      if (fileJson?.result?.file_path) {
+if (fileJson?.result?.file_path) {
         const downloadUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileJson.result.file_path}`;
-        const imgBuffer = await fetch(downloadUrl).then(r => r.arrayBuffer());
+        const imgRes = await fetch(downloadUrl);
+        const arrayBuf = await imgRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuf);
 
         const filePath = `ad_tg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
-        const { error: upErr } = await supabase.storage
+        const { data: upData, error: upErr } = await supabase.storage
           .from('listings')
-          .upload(filePath, imgBuffer, { contentType: 'image/jpeg', upsert: true });
+          .upload(filePath, buffer, { contentType: 'image/jpeg', upsert: true });
 
-        if (!upErr) {
+        if (upErr) {
+          console.error('Storage upload error:', upErr);
+        } else {
           const { data: pubData } = supabase.storage.from('listings').getPublicUrl(filePath);
-          if (pubData?.publicUrl) imageUrls.push(pubData.publicUrl);
+          if (pubData?.publicUrl) {
+            imageUrls.push(pubData.publicUrl);
+          }
         }
       }
     }
