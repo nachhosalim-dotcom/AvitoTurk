@@ -1,8 +1,5 @@
 -- =====================================================================
---  Avito Türk — схема НОВОЙ базы Supabase (выполнить целиком в SQL Editor)
---  Безопасность: личность пользователя подтверждает секретный токен сессии
---  (заголовок x-avito-token), который выдаёт вход/регистрация. Роль, баланс и
---  хэш пароля напрямую изменить нельзя — только через функции ниже.
+--  Avito Türk — схема обновленной базы Supabase
 -- =====================================================================
 create extension if not exists pgcrypto with schema extensions;
 
@@ -16,15 +13,12 @@ create table if not exists public.users (
   whatsapp        text,
   avatar          text,
   role            text not null default 'USER' check (role in ('USER','ADMIN','SUPERUSER')),
-  avitocash_balance numeric not null default 0,
-  trial_balance   numeric not null default 10,
   favorites       jsonb not null default '[]',
   verified_shop   boolean not null default false,
   show_women_ads  boolean not null default false,
   frozen          boolean not null default false,
   is_archived     boolean not null default false,
   shop            jsonb,
-  receipts        jsonb,
   created_at      timestamptz not null default now()
 );
 create unique index if not exists users_username_lower_uq on public.users (lower(username));
@@ -208,7 +202,90 @@ begin
   return jsonb_build_object('success', true);
 end $$;
 
--- ---------- АДМИНИСТРИРОВАНИЕ (p_caller_id оставлен для совместимости, не используется) ----------
+-- ---------- АТОМАРНОЕ УПРАВЛЕНИЕ ОЧЕРЕДЬЮ (Защита от Race Condition) ----------
+create or replace function public.join_ad_queue(p_ad_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  me text := public.app_uid();
+  u record;
+  q jsonb;
+  item jsonb;
+begin
+  if me is null then
+    return jsonb_build_object('success', false, 'error', 'Требуется вход');
+  end if;
+
+  select * into u from public.users where uid = me;
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Пользователь не найден');
+  end if;
+
+  select queue into q from public.ads where id = p_ad_id for update;
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Объявление не найдено');
+  end if;
+
+  if q is null then q := '[]'::jsonb; end if;
+
+  if exists (
+    select 1 from jsonb_array_elements(q) as elem
+    where elem->>'username' = u.username
+  ) then
+    return jsonb_build_object('success', true, 'queue', q);
+  end if;
+
+  item := jsonb_build_object(
+    'username', u.username,
+    'kunya', coalesce(u.kunya, u.username),
+    'whatsapp', coalesce(u.whatsapp, ''),
+    'timestamp', (extract(epoch from clock_timestamp()) * 1000)::bigint
+  );
+
+  q := q || item;
+
+  update public.ads set queue = q where id = p_ad_id;
+
+  return jsonb_build_object('success', true, 'queue', q);
+end $$;
+
+create or replace function public.leave_ad_queue(p_ad_id text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  me text := public.app_uid();
+  u record;
+  q jsonb;
+  new_q jsonb := '[]'::jsonb;
+  elem jsonb;
+begin
+  if me is null then
+    return jsonb_build_object('success', false, 'error', 'Требуется вход');
+  end if;
+
+  select * into u from public.users where uid = me;
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Пользователь не найден');
+  end if;
+
+  select queue into q from public.ads where id = p_ad_id for update;
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Объявление не найдено');
+  end if;
+
+  if q is not null then
+    for elem in select * from jsonb_array_elements(q)
+    loop
+      if elem->>'username' <> u.username then
+        new_q := new_q || elem;
+      end if;
+    end loop;
+  end if;
+
+  update public.ads set queue = new_q where id = p_ad_id;
+
+  return jsonb_build_object('success', true, 'queue', new_q);
+end $$;
+
+-- ---------- АДМИНИСТРИРОВАНИЕ ----------
 create or replace function public.admin_list_users() returns jsonb
 language plpgsql stable security definer set search_path = public as $$
 begin
@@ -279,34 +356,7 @@ begin
   return jsonb_build_object('success', false, 'error', 'Неизвестное действие');
 end $$;
 
--- ---------- AVITOCASH (деньги: только через функции) ----------
-create or replace function public.charge_avitocash(p_user_identifier text, p_amount numeric, p_action text, p_reason text default null)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare me text := public.app_uid(); v_bal numeric;
-begin
-  if me is null or p_amount is null or p_amount < 0 then return jsonb_build_object('success', false, 'error', 'Некорректный запрос'); end if;
-  if p_action = 'DEDUCT' then
-    update public.users set avitocash_balance = avitocash_balance - p_amount
-    where uid = me and avitocash_balance >= p_amount and (uid = p_user_identifier or username = p_user_identifier)
-    returning avitocash_balance into v_bal;
-    if not found then return jsonb_build_object('success', false, 'error', 'Недостаточно средств'); end if;
-  elsif p_action = 'ADD' and public.app_is_admin() then
-    update public.users set avitocash_balance = avitocash_balance + p_amount
-    where uid = p_user_identifier or username = p_user_identifier returning avitocash_balance into v_bal;
-    if not found then return jsonb_build_object('success', false, 'error', 'Пользователь не найден'); end if;
-  else
-    return jsonb_build_object('success', false, 'error', 'Недостаточно прав');
-  end if;
-  return jsonb_build_object('success', true, 'new_balance', v_bal);
-end $$;
-
-create or replace function public.transfer_avitocash(sender_identifier text, recipient_identifier text, transfer_amount numeric)
-returns jsonb language sql stable as $$ select jsonb_build_object('success', false, 'error', 'Переводы отключены') $$;
-create or replace function public.purchase_ad_item(p_ad_id text, p_buyer_identifier text)
-returns jsonb language sql stable as $$ select jsonb_build_object('success', false, 'error', 'Оплата внутри платформы отключена') $$;
-
 -- ---------- ЗАЩИТА ОБЪЯВЛЕНИЙ И КОМБО (ТРИГГЕРЫ) ----------
--- Чужой пользователь может менять только likes / queue / views.
 create or replace function public._guard_owner_cols() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare owner_ok boolean;
@@ -333,7 +383,6 @@ alter table public.categories enable row level security;
 alter table public.reports enable row level security;
 alter table public.system_settings enable row level security;
 
--- users: публичные поля видны всем (витрина магазинов), хэш/баланс/чеки/избранное — нет
 drop policy if exists users_read on public.users;
 create policy users_read on public.users for select to anon, authenticated using (not is_archived);
 drop policy if exists users_update_own on public.users;
@@ -366,7 +415,7 @@ drop policy if exists rep_insert on public.reports; create policy rep_insert on 
 drop policy if exists rep_admin on public.reports;  create policy rep_admin on public.reports for select to anon, authenticated using (public.app_is_admin());
 drop policy if exists rep_del on public.reports;    create policy rep_del on public.reports for delete to anon, authenticated using (public.app_is_admin());
 
--- ---------- ПРАВА НА УРОВНЕ КОЛОНОК ----------
+-- ---------- ПРАВА ----------
 revoke all on public.users, public.user_sessions, public.login_attempts from anon, authenticated;
 grant select (uid, username, kunya, gender, whatsapp, avatar, role, verified_shop, show_women_ads, frozen, is_archived, shop, created_at)
   on public.users to anon, authenticated;
@@ -382,8 +431,8 @@ grant execute on function
   public.logout(), public.get_me(), public.change_password(text), public.admin_list_users(),
   public.admin_manage_user(text,text,boolean,boolean,text), public.admin_toggle_archive_user(text,boolean),
   public.admin_delete_user(text), public.update_user_shop(text,jsonb,text),
-  public.secure_manage_ad(text,text,text,text), public.charge_avitocash(text,numeric,text,text),
-  public.transfer_avitocash(text,text,numeric), public.purchase_ad_item(text,text)
+  public.secure_manage_ad(text,text,text,text),
+  public.join_ad_queue(text), public.leave_ad_queue(text)
 to anon, authenticated;
 
 -- ---------- КАТЕГОРИИ ПО УМОЛЧАНИЮ ----------
@@ -394,7 +443,7 @@ insert into public.categories(id, name, icon) values
   ('kids','Anne & Bebek','fa-baby'),('other','Diğer','fa-boxes-stacked')
 on conflict (id) do nothing;
 
--- ---------- ХРАНИЛИЩЕ ФОТО (bucket listings) ----------
+-- ---------- ХРАНИЛИЩЕ ФОТО ----------
 do $$ begin
   if to_regclass('storage.buckets') is not null then
     insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_types)
@@ -406,8 +455,3 @@ do $$ begin
     execute 'create policy "listings upload" on storage.objects for insert to anon, authenticated with check (bucket_id = ''listings'' and public.app_uid() is not null)';
   end if;
 end $$;
-
--- ---------- ПЕРВЫЙ АДМИНИСТРАТОР ----------
--- 1) Зарегистрируйтесь в приложении как обычный пользователь.
--- 2) Выполните (подставьте свой логин):
---    update public.users set role = 'SUPERUSER' where lower(username) = lower('ВАШ_ЛОГИН');

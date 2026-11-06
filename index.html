@@ -249,12 +249,11 @@ body { top: 0px !important; }
 <span class="xl:hidden flex w-7 h-7 rounded-lg text-white items-center justify-center font-bold text-sm story-ring">A</span>
 </div>
 <div class="relative hidden xl:block mb-3">
-<div class="search-wrapper flex items-center">
-<button type="button" onclick="byId('search-input-desktop').focus()" class="w-9 h-9 shrink-0 flex items-center justify-center t2 hover:text-blue-500 z-20 cursor-pointer transition-colors" title="Найти">
+<div class="flex items-center bg-field rounded-lg border b-ig overflow-hidden">
+<button type="button" onclick="byId('search-input-desktop').focus()" class="w-9 h-9 shrink-0 flex items-center justify-center t2 hover:text-blue-500 cursor-pointer transition-colors" title="Найти">
   <i class="fa-solid fa-magnifying-glass text-xs"></i>
 </button>
-<input type="text" id="search-input-desktop" onkeyup="onSearchInput(this)" placeholder="Поиск" class="ig-input w-full h-9 pl-1 pr-3 text-sm relative z-10">
-<div class="marquee-container" style="padding-left: 36px;"><div class="marquee-content" id="desktop-marquee-text">🔥 Добро пожаловать на Avito Türk! • 🇹🇷 Лучшая доска объявлений Турции • 💰 Курсы валют обновляются автоматически • 🚀 Создавайте магазины и продавайте быстрее • ✨ Поддержите проект через AvitoCash • 🔍 Ищите товары, услуги и недвижимость по всей стране</div></div>
+<input type="text" id="search-input-desktop" onkeyup="onSearchInput(this)" placeholder="Поиск товаров, авто, жилья..." class="ig-input w-full h-9 pl-1 pr-3 text-sm bg-transparent border-0">
 </div>
 <div id="search-suggestions-desktop" class="hidden absolute top-10 inset-x-0 bg-card border b-ig rounded-xl shadow-2xl z-50 overflow-hidden"></div>
 </div>
@@ -284,17 +283,16 @@ body { top: 0px !important; }
 </aside>
 
 <!-- ============ MOBILE HEADER ============ -->
-<header id="app-mobile-header" class="lg:hidden fixed inset-x-0 top-0 z-40 h-[52px] border-b b-ig bg-card flex items-center gap-3 px-4">
-<span class="ig-logo text-[26px] t1 leading-none whitespace-nowrap cursor-pointer" onclick="handleNavClick('home')">Avito Türk</span>
-<div class="relative flex-1">
-<div class="search-wrapper flex items-center">
-<button type="button" onclick="byId('search-input').focus()" class="w-9 h-9 shrink-0 flex items-center justify-center t2 hover:text-blue-500 z-20 cursor-pointer transition-colors" title="Найти">
+<header id="app-mobile-header" class="lg:hidden fixed inset-x-0 top-0 z-40 h-[52px] border-b b-ig bg-card flex items-center gap-2.5 px-3">
+<span class="ig-logo text-[24px] t1 leading-none whitespace-nowrap cursor-pointer shrink-0" onclick="handleNavClick('home')">Avito Türk</span>
+<div class="relative flex-1 min-w-0">
+<div class="flex items-center bg-field rounded-lg border b-ig overflow-hidden">
+<button type="button" onclick="byId('search-input').focus()" class="w-8 h-8 shrink-0 flex items-center justify-center t2 hover:text-blue-500 cursor-pointer transition-colors" title="Найти">
   <i class="fa-solid fa-magnifying-glass text-xs"></i>
 </button>
-<input type="text" id="search-input" onkeyup="onSearchInput(this)" placeholder="Поиск" class="ig-input w-full h-9 pl-1 pr-3 text-sm relative z-10">
-<div class="marquee-container" style="padding-left: 36px;"><div class="marquee-content" id="mobile-marquee-text">🔥 Добро пожаловать на Avito Türk! • 🇹🇷 Лучшая доска объявлений Турции • 💰 Курсы валют обновляются автоматически • 🚀 Создавайте магазины и продавайте быстрее • ✨ Поддержите проект через AvitoCash • 🔍 Ищите товары, услуги и недвижимость по всей стране</div></div>
+<input type="text" id="search-input" onkeyup="onSearchInput(this)" placeholder="Поиск..." class="ig-input w-full h-8 pl-1 pr-2 text-xs bg-transparent border-0">
 </div>
-<div id="search-suggestions-mobile" class="hidden absolute top-10 inset-x-0 bg-card border b-ig rounded-xl shadow-2xl z-50 overflow-hidden"></div>
+<div id="search-suggestions-mobile" class="hidden absolute top-9 inset-x-0 bg-card border b-ig rounded-xl shadow-2xl z-50 overflow-hidden"></div>
 </div>
 
 <div class="flex items-center gap-1 shrink-0">
@@ -311,21 +309,28 @@ body { top: 0px !important; }
 <div id="categories-container" class="flex items-start gap-3 overflow-x-auto no-scrollbar px-1"></div>
 </div>
 <div class="ig-card rounded-xl flex flex-col gap-2 px-3 py-2">
-<div class="flex items-center justify-between gap-2">
+<div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
 <div class="flex items-center gap-2">
-<button onclick="toggleRegionMenu()" class="flex items-center gap-2 text-sm font-semibold t1 hover:opacity-70 transition-opacity">
+<button onclick="toggleRegionMenu()" class="flex items-center gap-1.5 text-xs sm:text-sm font-semibold t1 hover:opacity-70 transition-opacity">
 <i class="fa-solid fa-location-dot text-xs t2"></i>
 <span id="current-region-label">Все регионы</span>
 <i class="fa-solid fa-chevron-down text-[10px] t2"></i>
 </button>
-<button id="near-me-btn" onclick="openRadiusMenu()" title="Поиск рядом по GPS" class="px-2.5 py-1 rounded-lg border b-ig bg-field text-xs font-semibold t1 flex items-center gap-1 transition active:scale-95">
-<i class="fa-solid fa-location-crosshairs text-blue-500 text-[11px]"></i>
+<button id="near-me-btn" onclick="openRadiusMenu()" title="Поиск рядом по GPS" class="px-2 py-1 rounded-lg border b-ig bg-field text-[11px] font-semibold t1 flex items-center gap-1 transition active:scale-95">
+<i class="fa-solid fa-location-crosshairs text-blue-500 text-[10px]"></i>
 <span id="near-me-label">Рядом</span>
 </button>
 </div>
-<button onclick="toggleSortMenu()" class="text-xs font-bold t1 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-field transition-colors">
-<i class="fa-solid fa-arrow-down-wide-short"></i> <span id="current-sort-label">Новые</span>
-</button>
+
+<!-- Быстрый фильтр цены и сортировка -->
+<div class="flex items-center gap-1.5 ml-auto">
+  <input type="number" id="min-price-input" oninput="handlePriceRangeFilter()" placeholder="От $" class="w-16 h-7 px-2 text-[11px] font-bold rounded-lg bg-field border b-ig t1 outline-none text-center">
+  <span class="text-xs t2">-</span>
+  <input type="number" id="max-price-input" oninput="handlePriceRangeFilter()" placeholder="До $" class="w-16 h-7 px-2 text-[11px] font-bold rounded-lg bg-field border b-ig t1 outline-none text-center">
+  <button onclick="toggleSortMenu()" class="text-xs font-bold t1 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-field transition-colors">
+    <i class="fa-solid fa-arrow-down-wide-short"></i> <span id="current-sort-label">Новые</span>
+  </button>
+</div>
 </div>
 <div id="radius-menu-overlay" class="hidden fixed inset-0 z-[1050] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center" onclick="closeRadiusMenu()">
 <div class="ig-sheet w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-4 space-y-2 sort-dropdown mb-[56px] sm:mb-0" onclick="event.stopPropagation()">
@@ -511,6 +516,20 @@ body { top: 0px !important; }
 <button type="button" onclick="restoreDraft()" class="text-xs text-blue-400 font-bold underline">Восстановить</button>
 <button type="button" onclick="clearDraft(true)" class="text-xs t2 hover:text-white">Удалить</button>
 </div>
+</div>
+
+<!-- Блок быстрой вставки из WhatsApp / Telegram -->
+<div class="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 space-y-2">
+  <button type="button" id="smart-paste-toggle-btn" onclick="toggleSmartPasteBlock()" class="w-full text-left text-xs font-bold text-emerald-400 flex items-center justify-between">
+    <span><i class="fa-solid fa-paste"></i> 📋 Вставить текст из WhatsApp / Telegram</span>
+    <i id="smart-paste-chevron" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
+  </button>
+  <div id="smart-paste-body" class="hidden space-y-2 pt-1">
+    <textarea id="smart-paste-textarea" rows="3" placeholder="Вставьте сюда готовый текст вашего объявления из группы WhatsApp или Telegram — мы сами заполним заголовок, цену, категорию и город!" class="ig-input w-full p-2.5 text-xs"></textarea>
+    <button type="button" id="smart-paste-apply-btn" onclick="applySmartPasteText()" class="w-full py-2 rounded-lg text-xs font-bold text-white shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition" style="background:#10b981">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Распознать и заполнить
+    </button>
+  </div>
 </div>
 
 <!-- 1. Загрузка фото -->

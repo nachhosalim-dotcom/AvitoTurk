@@ -74,7 +74,7 @@ function validateWhatsApp(number) {
 async function initSupabaseSync() {
   if (!supabaseClient) return;
   try {
-const isAdminUser = !!(currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN'));
+    const isAdminUser = !!(currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN'));
     const PUBLIC_USER_COLS = 'uid,username,kunya,gender,whatsapp,avatar,role,verified_shop,show_women_ads,frozen,is_archived,shop,created_at';
     const userQuery = (async () => {
       let rows = [];
@@ -105,7 +105,7 @@ const isAdminUser = !!(currentUser && (currentUser.role === 'SUPERUSER' || curre
 
     const [usersRes, adsRes, combosRes, catsRes] = await Promise.allSettled([
       userQuery,
-      supabaseClient.from('ads').select('*').order('created_at', { ascending: false }).limit(100),
+      supabaseClient.from('ads').select('*').order('created_at', { ascending: false }).limit(1000),
       supabaseClient.from('combos').select('*'),
       supabaseClient.from('categories').select('*')
     ]);
@@ -117,8 +117,6 @@ const isAdminUser = !!(currentUser && (currentUser.role === 'SUPERUSER' || curre
         ...u,
         passwordHash: u.password_hash,
         verifiedShop: !!u.verified_shop,
-        avitocashBalance: Number(u.avitocash_balance || 0),
-        trialBalance: Number(u.trial_balance || 0),
         showWomenAds: !!u.show_women_ads,
         frozen: !!u.frozen,
         isArchived: !!u.is_archived
@@ -147,7 +145,7 @@ const isAdminUser = !!(currentUser && (currentUser.role === 'SUPERUSER' || curre
           title: a.title,
           category: a.category,
           storeCategory: a.store_category || '',
-          region: a.region,
+          region: a.region || 'IST',
           city: a.city,
           isWomenOnly: !!a.is_women_only,
           isFree: !!a.is_free,
@@ -237,9 +235,7 @@ async function uploadFileToSupabaseStorage(file, bucket = 'listings') {
   const compressed = await compressSingleImageFile(file, 1200, 1200, 0.75);
   const filePath = `ad_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
   
-  // тот же клиент, что и для остальных запросов: он добавляет токен сессии (нужен для политик хранилища)
   const directClient = supabaseClient;
-
   if (!directClient) throw new Error('Supabase client не инициализирован');
 
   const { error: uploadError } = await directClient.storage
@@ -292,8 +288,6 @@ async function handleMultiImageCompressUpload(e, mode = 'create') {
   e.target.value = '';
 }
 
-/* --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ (Логика перенесена в handlers.js) --- */
-
 /* --- СОХРАНЕНИЕ ОБЪЯВЛЕНИЙ --- */
 async function saveAdToSupabase(ad) {
   if (!supabaseClient) return;
@@ -302,7 +296,7 @@ async function saveAdToSupabase(ad) {
     title: ad.title,
     category: ad.category,
     store_category: ad.storeCategory || '',
-    region: ad.region,
+    region: ad.region || 'IST',
     city: ad.city,
     is_women_only: !!ad.isWomenOnly,
     is_free: !!ad.isFree,
@@ -342,93 +336,92 @@ function saveCachedCombos() {
 
 let _cacheDBPromise = null;
 function openCacheDB() {
-if (_cacheDBPromise) return _cacheDBPromise;
-_cacheDBPromise = new Promise((resolve, reject) => {
-const req = indexedDB.open('avito_turk_cache', 1);
-req.onupgradeneeded = (e) => {
-const db = e.target.result;
-if (!db.objectStoreNames.contains('ads')) db.createObjectStore('ads');
-if (!db.objectStoreNames.contains('combos')) db.createObjectStore('combos');
-};
-req.onsuccess = () => resolve(req.result);
-req.onerror = () => reject(req.error);
-});
-return _cacheDBPromise;
+  if (_cacheDBPromise) return _cacheDBPromise;
+  _cacheDBPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open('avito_turk_cache', 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('ads')) db.createObjectStore('ads');
+      if (!db.objectStoreNames.contains('combos')) db.createObjectStore('combos');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return _cacheDBPromise;
 }
 
 async function saveCachedAds() {
-const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
-const cleanAds = ads.filter(a => !deletedIds.includes(a.id));
-try {
-const db = await openCacheDB();
-const tx = db.transaction(['ads', 'combos'], 'readwrite');
-await tx.objectStore('ads').put(cleanAds, 'data');
-await tx.objectStore('combos').put(combos, 'data');
-await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
-} catch (e) {
-console.warn('IndexedDB save failed, fallback to localStorage:', e);
-try {
-localStorage.setItem('bs_cached_ads', JSON.stringify(cleanAds.slice(0, 50)));
-localStorage.setItem('bs_cached_combos', JSON.stringify(combos));
-} catch (err) {}
-}
+  const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
+  const cleanAds = ads.filter(a => !deletedIds.includes(a.id));
+  try {
+    const db = await openCacheDB();
+    const tx = db.transaction(['ads', 'combos'], 'readwrite');
+    await tx.objectStore('ads').put(cleanAds, 'data');
+    await tx.objectStore('combos').put(combos, 'data');
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+  } catch (e) {
+    console.warn('IndexedDB save failed, fallback to localStorage:', e);
+    try {
+      localStorage.setItem('bs_cached_ads', JSON.stringify(cleanAds.slice(0, 50)));
+      localStorage.setItem('bs_cached_combos', JSON.stringify(combos));
+    } catch (err) {}
+  }
 }
 
 async function loadCachedAds() {
-// Сначала мгновенно загружаем избранное из localStorage (оно маленькое)
-try {
-const f = localStorage.getItem('bs_favorites');
-if (f) favorites = JSON.parse(f);
-} catch (e) {}
+  try {
+    const f = localStorage.getItem('bs_favorites');
+    if (f) favorites = JSON.parse(f);
+  } catch (e) {}
 
-try {
-const db = await openCacheDB();
-const tx = db.transaction(['ads', 'combos'], 'readonly');
-const adsReq = tx.objectStore('ads').get('data');
-const combosReq = tx.objectStore('combos').get('data');
-const results = await Promise.all([
-new Promise(res => { adsReq.onsuccess = () => res(adsReq.result); adsReq.onerror = () => res(null); }),
-new Promise(res => { combosReq.onsuccess = () => res(combosReq.result); combosReq.onerror = () => res(null); })
-]);
+  try {
+    const db = await openCacheDB();
+    const tx = db.transaction(['ads', 'combos'], 'readonly');
+    const adsReq = tx.objectStore('ads').get('data');
+    const combosReq = tx.objectStore('combos').get('data');
+    const results = await Promise.all([
+      new Promise(res => { adsReq.onsuccess = () => res(adsReq.result); adsReq.onerror = () => res(null); }),
+      new Promise(res => { combosReq.onsuccess = () => res(combosReq.result); combosReq.onerror = () => res(null); })
+    ]);
 
-const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
+    const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
 
-if (results[0] && Array.isArray(results[0])) {
-ads = results[0]
-.filter(a => !deletedIds.includes(a.id))
-.map(a => ({
-...a,
-images: (Array.isArray(a.images) ? a.images : [a.image || '']).map(fixDirectImageUrl),
-image: fixDirectImageUrl(a.image || (Array.isArray(a.images) ? a.images[0] : null))
-}));
-}
-if (results[1] && Array.isArray(results[1])) {
-combos = results[1];
-}
-} catch (e) {
-console.warn('IndexedDB load failed, fallback to localStorage:', e);
-try {
-const c = localStorage.getItem('bs_cached_ads');
-if (c) {
-const parsed = JSON.parse(c);
-if (Array.isArray(parsed)) {
-const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
-ads = parsed
-.filter(a => !deletedIds.includes(a.id))
-.map(a => ({
-...a,
-images: (Array.isArray(a.images) ? a.images : [a.image || '']).map(fixDirectImageUrl),
-image: fixDirectImageUrl(a.image || (Array.isArray(a.images) ? a.images[0] : null))
-}));
-}
-}
-const cb = localStorage.getItem('bs_cached_combos');
-if (cb) {
-const parsedCombos = JSON.parse(cb);
-if (Array.isArray(parsedCombos)) combos = parsedCombos;
-}
-} catch (err) {}
-}
+    if (results[0] && Array.isArray(results[0])) {
+      ads = results[0]
+        .filter(a => !deletedIds.includes(a.id))
+        .map(a => ({
+          ...a,
+          images: (Array.isArray(a.images) ? a.images : [a.image || '']).map(fixDirectImageUrl),
+          image: fixDirectImageUrl(a.image || (Array.isArray(a.images) ? a.images[0] : null))
+        }));
+    }
+    if (results[1] && Array.isArray(results[1])) {
+      combos = results[1];
+    }
+  } catch (e) {
+    console.warn('IndexedDB load failed, fallback to localStorage:', e);
+    try {
+      const c = localStorage.getItem('bs_cached_ads');
+      if (c) {
+        const parsed = JSON.parse(c);
+        if (Array.isArray(parsed)) {
+          const deletedIds = (typeof getDeletedAdsList === 'function') ? getDeletedAdsList() : [];
+          ads = parsed
+            .filter(a => !deletedIds.includes(a.id))
+            .map(a => ({
+              ...a,
+              images: (Array.isArray(a.images) ? a.images : [a.image || '']).map(fixDirectImageUrl),
+              image: fixDirectImageUrl(a.image || (Array.isArray(a.images) ? a.images[0] : null))
+            }));
+        }
+      }
+      const cb = localStorage.getItem('bs_cached_combos');
+      if (cb) {
+        const parsedCombos = JSON.parse(cb);
+        if (Array.isArray(parsedCombos)) combos = parsedCombos;
+      }
+    } catch (err) {}
+  }
 }
 
 function processSquareImageCrop(file, size = 300) {
@@ -454,7 +447,6 @@ function processSquareImageCrop(file, size = 300) {
     reader.readAsDataURL(file);
   });
 }
-
 
 async function urlToBase64(url) {
   try {
@@ -527,15 +519,28 @@ async function fetchLiveExchangeRates(manual = false) {
   }
 }
 
+// Загружаем сохраненный кэш переводов из sessionStorage, чтобы не спамить сеть
+try {
+  const savedTrCache = sessionStorage.getItem('bs_tr_cache');
+  if (savedTrCache) Object.assign(TRANSLATE_CACHE, JSON.parse(savedTrCache));
+} catch (e) {}
+
+const _pendingTranslations = {};
+
 async function translateDynamic(text, targetLang = currentLang) {
   if (!text || typeof text !== 'string') return text;
   const clean = text.trim();
-  if (!clean) return text;
+  if (!clean || clean.length < 2) return text;
+
+  // Если текст уже на целевом языке (кириллица при ru или латиница без кириллицы при tr), не переводим зря
+  const hasCyrillic = /[а-яёА-ЯЁ]/.test(clean);
+  if (targetLang === 'ru' && hasCyrillic) return clean;
+  if (targetLang === 'tr' && !hasCyrillic) return clean;
 
   const cacheKey = `${targetLang}_${clean}`;
   if (TRANSLATE_CACHE[cacheKey]) return TRANSLATE_CACHE[cacheKey];
+  if (_pendingTranslations[cacheKey]) return _pendingTranslations[cacheKey];
 
-  // 1. Быстрый словарь популярных слов
   const quickWords = {
     'телефон': 'telefon',
     'новый': 'yeni',
@@ -551,132 +556,45 @@ async function translateDynamic(text, targetLang = currentLang) {
     return res;
   }
 
-  // 2. Онлайн-переводчик Google
-  try {
-    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(clean)}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data[0]) {
-        const result = data[0].map(x => x[0]).join('');
-        if (result) {
-          TRANSLATE_CACHE[cacheKey] = result;
-          return result;
+  _pendingTranslations[cacheKey] = (async () => {
+    try {
+      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(clean)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data[0]) {
+          const result = data[0].map(x => x[0]).join('');
+          if (result) {
+            TRANSLATE_CACHE[cacheKey] = result;
+            try { sessionStorage.setItem('bs_tr_cache', JSON.stringify(TRANSLATE_CACHE)); } catch(e) {}
+            return result;
+          }
         }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
 
-  // 3. Резервный переводчик MyMemory
-  try {
-    const sourceLang = targetLang === 'tr' ? 'ru' : 'tr';
-    const res2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${sourceLang}|${targetLang}`);
-    if (res2.ok) {
-      const data2 = await res2.json();
-      if (data2?.responseData?.translatedText) {
-        const result2 = data2.responseData.translatedText;
-        TRANSLATE_CACHE[cacheKey] = result2;
-        return result2;
+    try {
+      const sourceLang = targetLang === 'tr' ? 'ru' : 'tr';
+      const res2 = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${sourceLang}|${targetLang}`);
+      if (res2.ok) {
+        const data2 = await res2.json();
+        if (data2?.responseData?.translatedText) {
+          const result2 = data2.responseData.translatedText;
+          TRANSLATE_CACHE[cacheKey] = result2;
+          try { sessionStorage.setItem('bs_tr_cache', JSON.stringify(TRANSLATE_CACHE)); } catch(e) {}
+          return result2;
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
 
-  return clean;
-}
-
-/* ================= MARQUEE FUNCTIONS ================= */
-async function updateMarqueeText(text) {
-  MARQUEE_SETTINGS.text = text;
-  const desktop = byId('desktop-marquee-text');
-  const mobile = byId('mobile-marquee-text');
-  
-let displayText = text;
-  if (currentLang === 'tr') {
-    displayText = await translateDynamic(text, 'tr');
-  } else {
-    displayText = await translateDynamic(text, 'ru');
-  }
-  
-  if (desktop) desktop.innerText = displayText;
-  if (mobile) mobile.innerText = displayText;
-  
-  const input = byId('admin-marquee-input');
-  if (input && document.activeElement !== input) input.value = text;
-  updateMarqueePreview(displayText);
-}
-
-function applyMarqueeSettings(settings) {
-  MARQUEE_SETTINGS = { ...MARQUEE_SETTINGS, ...settings };
-  updateMarqueeText(MARQUEE_SETTINGS.text || '');
-  document.querySelectorAll('.marquee-container').forEach(container => {
-    container.classList.toggle('marquee-pause-hover', !!MARQUEE_SETTINGS.pauseOnHover);
+    return clean;
+  })().finally(() => {
+    delete _pendingTranslations[cacheKey];
   });
-  document.querySelectorAll('.marquee-content').forEach(content => {
-    content.style.setProperty('--marquee-color', MARQUEE_SETTINGS.color || '#a8a8a8');
-    content.style.setProperty('--marquee-font-size', `${Number(MARQUEE_SETTINGS.fontSize) || 13}px`);
-    const textLen = (content.innerText || '').length;
-const baseSpeed = Number(MARQUEE_SETTINGS.speed) || 20;
-const dynamicSpeed = Math.max(8, Math.min(60, textLen * 0.35 + baseSpeed * 0.3));
-content.style.setProperty('--marquee-speed', `${dynamicSpeed.toFixed(1)}s`);
-    content.style.animationDirection = MARQUEE_SETTINGS.direction === 'right' ? 'reverse' : 'normal';
-  });
-  updateMarqueeControls();
-}
 
-function updateMarqueePreview(text) {
-  const preview = byId('admin-marquee-preview');
-  const counter = byId('admin-marquee-counter');
-  if (preview) preview.innerText = text || 'Предпросмотр появится здесь';
-  if (counter) counter.innerText = `${String(text || '').length} символов`;
-}
-
-function handleMarqueeInput(input) {
-  MARQUEE_SETTINGS.text = input.value;
-  updateMarqueePreview(input.value);
-}
-
-function updateMarqueeControls() {
-  const color = byId('admin-marquee-color');
-  const size = byId('admin-marquee-size');
-  const speed = byId('admin-marquee-speed');
-  const direction = byId('admin-marquee-direction');
-  const pause = byId('admin-marquee-pause');
-  if (color) color.value = MARQUEE_SETTINGS.color || '#a8a8a8';
-  if (size) size.value = MARQUEE_SETTINGS.fontSize || 13;
-  if (speed) speed.value = MARQUEE_SETTINGS.speed || 20;
-  if (direction) direction.value = MARQUEE_SETTINGS.direction || 'left';
-  if (pause) pause.checked = !!MARQUEE_SETTINGS.pauseOnHover;
-}
-
-function handleMarqueeSettingsInput() {
-  const input = byId('admin-marquee-input');
-  MARQUEE_SETTINGS.text = input ? input.value : MARQUEE_SETTINGS.text;
-  MARQUEE_SETTINGS.color = byId('admin-marquee-color')?.value || MARQUEE_SETTINGS.color;
-  MARQUEE_SETTINGS.fontSize = Number(byId('admin-marquee-size')?.value || MARQUEE_SETTINGS.fontSize);
-  MARQUEE_SETTINGS.speed = Number(byId('admin-marquee-speed')?.value || MARQUEE_SETTINGS.speed);
-  MARQUEE_SETTINGS.direction = byId('admin-marquee-direction')?.value || MARQUEE_SETTINGS.direction;
-  MARQUEE_SETTINGS.pauseOnHover = !!byId('admin-marquee-pause')?.checked;
-  applyMarqueeSettings(MARQUEE_SETTINGS);
-}
-
-function loadMarqueeText() {
-  const savedText = localStorage.getItem(MARQUEE_STORAGE_KEY);
-  if (savedText) updateMarqueeText(savedText);
-}
-
-async function saveMarqueeSettings() {
-  const input = byId('admin-marquee-input');
-  if (!input) return;
-  const text = input.value.trim();
-  if (!text) { showToast('Введите текст для бегущей строки', 'warning'); return; }
-  const settings = { ...MARQUEE_SETTINGS, text };
-  localStorage.setItem(MARQUEE_STORAGE_KEY, text);
-  applyMarqueeSettings(settings);
-  await updateMarqueeText(text);
-  showToast('Бегущая строка сохранена и автоматически переведена!', 'success');
+  return _pendingTranslations[cacheKey];
 }
 
 function translateStaticUI(lang) {
-  // Навигация
   const navMap = {
     'sb-home': t('nav_home'),
     'sb-shops': t('nav_shops'),
@@ -689,7 +607,7 @@ function translateStaticUI(lang) {
     if (el) el.innerText = navMap[id];
   });
 
-const isTr = lang === 'tr';
+  const isTr = lang === 'tr';
   const supLbl = byId('sb-support-label');
   if (supLbl) supLbl.innerText = t('support');
 
@@ -716,10 +634,15 @@ const isTr = lang === 'tr';
   const regLbl = byId('current-region-label');
   if (regLbl) {
     const regVal = byId('region-filter')?.value || 'ALL';
-    regLbl.innerText = regVal === 'ALL' ? t('all_regions') : (REGION_NAMES[regVal] || t('all_regions'));
+    regLbl.innerText = regVal === 'ALL' ? t('all_regions') : (getRegionName(regVal) || t('all_regions'));
   }
 
-const sortLbl = byId('current-sort-label');
+  const minPrInp = byId('min-price-input');
+  if (minPrInp) minPrInp.placeholder = t('price_from_ph');
+  const maxPrInp = byId('max-price-input');
+  if (maxPrInp) maxPrInp.placeholder = t('price_to_ph');
+
+  const sortLbl = byId('current-sort-label');
   if (sortLbl) {
     const sortLabels = { 
       newest: isTr ? 'En Yeniler' : 'Новые', 
@@ -730,7 +653,6 @@ const sortLbl = byId('current-sort-label');
     sortLbl.innerText = sortLabels[currentSortMode] || (isTr ? 'En Yeniler' : 'Новые');
   }
   
-  // Перевод элементов внутри модального меню сортировки
   const sortTitle = byId('sort-menu-overlay')?.querySelector('.text-center');
   if (sortTitle) sortTitle.innerText = isTr ? 'Sıralama:' : 'Сортировать по:';
   
@@ -749,9 +671,16 @@ const sortLbl = byId('current-sort-label');
   const sortCloseBtn = byId('sort-menu-overlay')?.querySelector('button:last-child');
   if (sortCloseBtn) sortCloseBtn.innerText = isTr ? 'Kapat' : 'Закрыть';
   
-// Модалка создания объявления
+  // Модалка создания объявления
   const createTitle = document.querySelector('#modal-create-ad h3');
   if (createTitle) createTitle.innerText = t('ad_create_title');
+  const smartBtn = byId('smart-paste-toggle-btn');
+  if (smartBtn) smartBtn.innerText = t('smart_paste_btn');
+  const smartTa = byId('smart-paste-textarea');
+  if (smartTa) smartTa.placeholder = t('smart_paste_ph');
+  const smartApply = byId('smart-paste-apply-btn');
+  if (smartApply) smartApply.innerText = t('smart_paste_apply');
+
   const adPhotoLbl = byId('ad-photos-label');
   if (adPhotoLbl) adPhotoLbl.innerText = t('ad_photos_label');
   const adUpText = byId('ad-upload-btn-text');
@@ -770,7 +699,7 @@ const sortLbl = byId('current-sort-label');
   if (adDescInp) adDescInp.placeholder = t('ad_desc_ph');
   const adAdvBtn = byId('create-ad-advanced-fields')?.previousElementSibling?.querySelector('span');
   if (adAdvBtn) adAdvBtn.innerHTML = `<i class="fa-solid fa-sliders text-purple-400"></i> ${t('ad_advanced_btn')}`;
-const createSubBtn = document.querySelector('#modal-create-ad button[type="submit"]');
+  const createSubBtn = document.querySelector('#modal-create-ad button[type="submit"]');
   if (createSubBtn) createSubBtn.innerText = t('ad_submit_btn');
 
   // Баннер черновика
@@ -795,10 +724,9 @@ const createSubBtn = document.querySelector('#modal-create-ad button[type="submi
   if (shopHoursInp) shopHoursInp.placeholder = t('shop_hours_ph');
   const shopWaInp = byId('shop-whatsapp');
   if (shopWaInp) shopWaInp.placeholder = t('shop_whatsapp_ph');
-const shopDescInp = byId('shop-desc');
+  const shopDescInp = byId('shop-desc');
   if (shopDescInp) shopDescInp.placeholder = t('shop_desc_ph');
 
-  // Модалка создания магазина - надписи и карта
   const shopMapLbl = document.querySelector('#modal-create-shop label[for="shop-create-map"]') || document.querySelector('#modal-create-shop label:has(+ #shop-create-map)');
   if (shopMapLbl) shopMapLbl.innerText = t('shop_map_label');
 
@@ -819,26 +747,17 @@ const shopDescInp = byId('shop-desc');
     shopCatSel.options[6].text = isTr ? 'Diğer' : 'Разное';
   }
   
-// Поиск
+  // Поиск
   const sDesk = byId('search-input-desktop');
   if (sDesk) sDesk.placeholder = t('search');
   const sMob = byId('search-input');
   if (sMob) sMob.placeholder = t('search');
 
-// Бегущая строка
-  const marqueeDesktop = byId('desktop-marquee-text');
-  const marqueeMobile = byId('mobile-marquee-text');
-  const defaultMarqueeTr = "🔥 Avito Türk'e Hoş Geldiniz! • 🇹🇷 Türkiye'nin Güvenilir Seri İlan Platformu • 💰 Güncel Döviz Kurları • 🚀 Mağazanızı Açın ve Hızlı Satın • 🔍 Araç, Emlak ve İkinci El Ürünleri Keşfedin";
-  const defaultMarqueeRu = "🔥 Добро пожаловать на Avito Türk! • 🇹🇷 Лучшая доска объявлений Турции • 💰 Курсы валют обновляются автоматически • 🚀 Создавайте магазины и продавайте быстрее • 🔍 Ищите авто, товары и недвижимость";
-  
-  if (marqueeDesktop && !MARQUEE_SETTINGS.text) marqueeDesktop.innerText = isTr ? defaultMarqueeTr : defaultMarqueeRu;
-  if (marqueeMobile && !MARQUEE_SETTINGS.text) marqueeMobile.innerText = isTr ? defaultMarqueeTr : defaultMarqueeRu;
-
   // Футер
-const devLbl = byId('ft-dev-label');
+  const devLbl = byId('ft-dev-label');
   if (devLbl) devLbl.innerText = isTr ? 'Geliştirici:' : 'Разработчик:';
 
-// Расширенные поля подачи объявления
+  // Расширенные поля подачи объявления
   const cityInp = byId('ad-city');
   if (cityInp) cityInp.placeholder = isTr ? 'İlçe / Mahalle' : 'Город/район';
 
@@ -872,7 +791,7 @@ const devLbl = byId('ft-dev-label');
     if (tabAds) tabAds.innerText = isTr ? 'İlanlar' : 'Объявления';
   }
   
-  // Модальное окно жалобы (modal-report-ad)
+  // Модальное окно жалобы
   const repModal = byId('modal-report-ad');
   if (repModal) {
     const repTitle = repModal.querySelector('h3');
@@ -894,7 +813,7 @@ const devLbl = byId('ft-dev-label');
     if (repBtn) repBtn.innerText = isTr ? 'Şikayeti Gönder' : 'Отправить жалобу';
   }
 
-// Модальное окно правил (modal-rules-agreement)
+  // Модальное окно правил
   const rulesModal = byId('modal-rules-agreement');
   if (rulesModal) {
     const rulesTitle = rulesModal.querySelector('h2');
@@ -929,7 +848,7 @@ const devLbl = byId('ft-dev-label');
     if (rulesBtn) rulesBtn.innerText = isTr ? 'Şartları Kabul Ediyorum' : 'Я подтверждаю и принимаю условия';
   }
   
-  // Модальное окно "Поделиться" (modal-share)
+  // Модальное окно "Поделиться"
   const shareModal = byId('modal-share');
   if (shareModal) {
     const shareTitle = shareModal.querySelector('.text-center.font-bold');
@@ -938,7 +857,7 @@ const devLbl = byId('ft-dev-label');
     if (cancelBtn) cancelBtn.innerText = isTr ? 'İptal' : 'Отмена';
   }
 
-// Оффлайн экран (offline-screen)
+  // Оффлайн экран
   const offScreen = byId('offline-screen');
   if (offScreen) {
     const offTitle = offScreen.querySelector('h2');
@@ -949,7 +868,7 @@ const devLbl = byId('ft-dev-label');
     if (offWait) offWait.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>${isTr ? 'Ağ bekleniyor...' : 'Ожидание сети...'}`;
   }
 
-// Скрытые надписи в подаче объявления (Админ, Магазин)
+  // Скрытые надписи в подаче объявления (Админ, Магазин)
   const userLoggedBadge = byId('user-logged-badge');
   if (userLoggedBadge) {
     const badgeSpan = userLoggedBadge.querySelector('span');

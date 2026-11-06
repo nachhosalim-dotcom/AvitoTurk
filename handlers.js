@@ -278,6 +278,23 @@ function requestPushPermission() {
   }
 }
 
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch(e) {}
+}
+
 function sendBrowserPush(title, body, icon = null) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
@@ -531,7 +548,7 @@ function deleteCategoryWithConfirm(catId) {
 
 function loadDraftCheck() { try { const d = localStorage.getItem('bs_ad_draft'); if (d) { byId('draft-restore-banner').classList.remove('hidden'); } } catch(e){} }
 function saveDraft() { try { const data = { title: byId('ad-title').value, category: byId('ad-category').value, region: byId('ad-region').value, city: byId('ad-city').value, price: byId('ad-price').value, currency: byId('ad-currency').value, desc: byId('ad-desc').value }; localStorage.setItem('bs_ad_draft', JSON.stringify(data)); } catch(e){} }
-function restoreDraft() { try { const d = localStorage.getItem('bs_ad_draft'); if (d) { const data = JSON.parse(d); byId('ad-title').value = data.title || ''; byId('ad-category').value = data.category || 'electronics'; byId('ad-region').value = data.region || 'DAM'; byId('ad-city').value = data.city || ''; byId('ad-price').value = data.price || ''; byId('ad-currency').value = data.currency || 'USD'; byId('ad-desc').value = data.desc || ''; byId('draft-restore-banner').classList.add('hidden'); } } catch(e){} }
+function restoreDraft() { try { const d = localStorage.getItem('bs_ad_draft'); if (d) { const data = JSON.parse(d); byId('ad-title').value = data.title || ''; byId('ad-category').value = data.category || 'electronics'; byId('ad-region').value = data.region || 'IST'; byId('ad-city').value = data.city || ''; byId('ad-price').value = data.price || ''; byId('ad-currency').value = data.currency || 'USD'; byId('ad-desc').value = data.desc || ''; byId('draft-restore-banner').classList.add('hidden'); } } catch(e){} }
 function clearDraft(silent) { localStorage.removeItem('bs_ad_draft'); byId('draft-restore-banner').classList.add('hidden'); if(!silent) showToast('Черновик удален', 'info'); }
 
 function toggleAdvancedCreateFields() {
@@ -689,9 +706,12 @@ function initCreateMap() {
     createMarker = null;
   }
 
-  createMap = L.map('create-map').setView([curLat, curLng], 12); 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(createMap); 
-  createMarker = L.marker([curLat, curLng], { draggable: true }).addTo(createMap); 
+createMap = L.map('create-map').setView([curLat, curLng], 12); 
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 18,
+    attribution: '© Esri'
+  }).addTo(createMap);
+  createMarker = L.marker([curLat, curLng], { draggable: true }).addTo(createMap);
   
   createMarker.on('dragend', e => { 
     const ll = e.target.getLatLng(); 
@@ -798,7 +818,7 @@ async function handleCreateAdSubmit(e) {
   const imgs = [...pendingCreateImages];
   if (!imgs.length) imgs.push(PLACEHOLDER_IMG);
 
-  const regionVal = byId('ad-region')?.value || 'DAM';
+  const regionVal = byId('ad-region')?.value || 'IST';
   const cityVal = byId('ad-city')?.value.trim() || REGION_NAMES[regionVal] || 'İstanbul';
 
   const adId = 'AD-' + Date.now().toString(36).toUpperCase();
@@ -954,7 +974,7 @@ function openEditAdModal(adId) {
   fillCategorySelect(byId('edit-ad-category'), ad.category);
   byId('edit-ad-id').value = ad.id;
   byId('edit-ad-title').value = ad.title || '';
-  byId('edit-ad-region').value = ad.region || 'DAM';
+  byId('edit-ad-region').value = ad.region || 'IST';
   byId('edit-ad-city').value = ad.city || '';
   byId('edit-ad-is-women-only').checked = !!ad.isWomenOnly;
   byId('edit-ad-is-free').checked = !!ad.isFree;
@@ -1153,20 +1173,18 @@ async function joinQueue(adId) {
   ad.queue.push(queueItem); 
   saveCachedAds(); 
   openAdDetail(adId, false); 
-  showToast('Вы успешно заняли очередь!', 'success'); 
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  showToast(isTr ? 'Sıraya başarıyla girdiniz!' : 'Вы успешно заняли очередь!', 'success'); 
 
   if (supabaseClient) {
     try {
-      const { data: fresh } = await supabaseClient.from('ads').select('queue').eq('id', adId).single();
-      let latestQueue = Array.isArray(fresh?.queue) ? fresh.queue : [];
-      if (!latestQueue.some(q => q.username === currentUser.username)) {
-        latestQueue.push(queueItem);
-        await supabaseClient.from('ads').update({ queue: latestQueue }).eq('id', adId);
-        ad.queue = latestQueue;
+      const { data: res, error } = await supabaseClient.rpc('join_ad_queue', { p_ad_id: adId });
+      if (!error && res && res.success && Array.isArray(res.queue)) {
+        ad.queue = res.queue;
         saveCachedAds();
       }
     } catch (err) {
-      console.warn('Queue join sync warning:', err);
+      console.warn('RPC queue join warning:', err);
     }
   }
 }
@@ -1179,18 +1197,18 @@ async function leaveQueue(adId) {
   ad.queue = ad.queue.filter(q => q.username !== currentUser.username); 
   saveCachedAds(); 
   openAdDetail(adId, false); 
-  showToast('Вы вышли из очереди', 'info'); 
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  showToast(isTr ? 'Sıradan çıktınız' : 'Вы вышли из очереди', 'info'); 
 
   if (supabaseClient) {
     try {
-      const { data: fresh } = await supabaseClient.from('ads').select('queue').eq('id', adId).single();
-      let latestQueue = Array.isArray(fresh?.queue) ? fresh.queue : [];
-      latestQueue = latestQueue.filter(q => q.username !== currentUser.username);
-      await supabaseClient.from('ads').update({ queue: latestQueue }).eq('id', adId);
-      ad.queue = latestQueue;
-      saveCachedAds();
+      const { data: res, error } = await supabaseClient.rpc('leave_ad_queue', { p_ad_id: adId });
+      if (!error && res && res.success && Array.isArray(res.queue)) {
+        ad.queue = res.queue;
+        saveCachedAds();
+      }
     } catch (err) {
-      console.warn('Queue leave sync warning:', err);
+      console.warn('RPC queue leave warning:', err);
     }
   }
 }
@@ -2069,4 +2087,110 @@ function openGiftForSpecificAd(adId) {
     }
     showToast('Выберите из списка второй товар, который пойдет в подарок!', 'info');
   }, 200);
+}
+/* ================= SMART WHATSAPP / TELEGRAM PARSER & PRICE RANGE ================= */
+
+function toggleSmartPasteBlock() {
+  const body = byId('smart-paste-body');
+  const chev = byId('smart-paste-chevron');
+  if (!body) return;
+  const isHidden = body.classList.contains('hidden');
+  body.classList.toggle('hidden', !isHidden);
+  if (chev) chev.style.transform = isHidden ? 'rotate(180deg)' : 'none';
+  if (isHidden) {
+    setTimeout(() => byId('smart-paste-textarea')?.focus(), 100);
+  }
+}
+
+function applySmartPasteText() {
+  const ta = byId('smart-paste-textarea');
+  if (!ta) return;
+  const text = ta.value.trim();
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+
+  if (!text || text.length < 5) {
+    showToast(isTr ? 'Lütfen ilan metnini yapıştırın' : 'Вставьте текст объявления для распознавания', 'warning');
+    return;
+  }
+
+  // 1. Поиск цены и валюты ($ или TL / TRY)
+  let detectedPrice = null;
+  let detectedCurrency = 'USD';
+
+  const usdMatch = text.match(/(?:цена|fiyat|fiyatı|price|стоимость)?\s*[:=\-]?\s*(\d+[\.,]?\d*)\s*(?:\$|usd|долл|долларов)/i) ||
+                   text.match(/\$\s*(\d+[\.,]?\d*)/i);
+  const tryMatch = text.match(/(?:цена|fiyat|fiyatı|price|стоимость)?\s*[:=\-]?\s*(\d+[\.,]?\d*)\s*(?:₺|tl|try|лир|лиры)/i);
+  const plainNumMatch = text.match(/(?:цена|fiyat|price)[:=\-\s]+(\d+[\.,]?\d*)/i);
+
+  if (usdMatch) {
+    detectedPrice = parseFloat(usdMatch[1].replace(',', '.'));
+    detectedCurrency = 'USD';
+  } else if (tryMatch) {
+    detectedPrice = parseFloat(tryMatch[1].replace(',', '.'));
+    detectedCurrency = 'TRY';
+  } else if (plainNumMatch) {
+    detectedPrice = parseFloat(plainNumMatch[1].replace(',', '.'));
+    detectedCurrency = 'USD';
+  }
+
+  // 2. Распознавание турецких городов
+  const cityMap = {
+    'istanbul': 'IST', 'стамбул': 'IST', 'ankara': 'ANK', 'анкара': 'ANK',
+    'izmir': 'IZM', 'измир': 'IZM', 'bursa': 'BUR', 'бурса': 'BUR',
+    'antalya': 'ANT', 'анталья': 'ANT', 'анталия': 'ANT', 'gaziantep': 'GAZ',
+    'газиантеп': 'GAZ', 'hatay': 'HAT', 'хатай': 'HAT', 'mersin': 'MER',
+    'мерсин': 'MER', 'urfa': 'URF', 'şanlıurfa': 'URF', 'шанлыурфа': 'URF',
+    'konya': 'KON', 'конья': 'KON', 'adana': 'ADA', 'адана': 'ADA',
+    'kayseri': 'KAY', 'кайсери': 'KAY', 'samsun': 'SAM', 'самсун': 'SAM',
+    'trabzon': 'TRA', 'трабзон': 'TRA'
+  };
+
+  const lowerText = text.toLowerCase();
+  for (const [cityName, regCode] of Object.entries(cityMap)) {
+    if (lowerText.includes(cityName)) {
+      if (byId('ad-region')) byId('ad-region').value = regCode;
+      if (byId('ad-city')) byId('ad-city').value = cityName.charAt(0).toUpperCase() + cityName.slice(1);
+      if (typeof handleRegionMapUpdate === 'function') handleRegionMapUpdate(regCode);
+      break;
+    }
+  }
+
+  // 3. Выделение заголовка и описания
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let firstLine = lines[0] || '';
+  firstLine = firstLine.replace(/^(продам|satılık|satilik|продает|for sale)[:\-–\s]*/i, '');
+  if (firstLine.length > 60) firstLine = firstLine.substring(0, 58) + '...';
+
+  if (byId('ad-title')) byId('ad-title').value = firstLine;
+  if (byId('ad-desc')) byId('ad-desc').value = text;
+
+  if (detectedPrice !== null && !isNaN(detectedPrice)) {
+    if (byId('ad-price')) byId('ad-price').value = detectedPrice;
+    if (byId('ad-currency')) byId('ad-currency').value = detectedCurrency;
+  }
+
+  if (typeof detectCategoryByTitle === 'function') {
+    detectCategoryByTitle(text);
+  }
+
+  if (typeof saveDraft === 'function') saveDraft();
+
+  toggleSmartPasteBlock();
+  showToast(isTr ? 'Bilgiler otomatik dolduruldu!' : 'Данные успешно распознаны и заполнены!', 'success');
+}
+
+let priceRangeDebounce = null;
+function handlePriceRangeFilter() {
+  clearTimeout(priceRangeDebounce);
+  priceRangeDebounce = setTimeout(() => {
+    const minVal = parseFloat(byId('min-price-input')?.value);
+    const maxVal = parseFloat(byId('max-price-input')?.value);
+
+    minPriceFilter = (!isNaN(minVal) && minVal > 0) ? minVal : null;
+    maxPriceFilter = (!isNaN(maxVal) && maxVal > 0) ? maxVal : null;
+
+    if (typeof resetPageAndRender === 'function') {
+      resetPageAndRender();
+    }
+  }, 250);
 }

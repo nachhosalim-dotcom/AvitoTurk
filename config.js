@@ -23,6 +23,7 @@ const _savedLayout = localStorage.getItem('bs_feed_layout') || 'instagram';
 const _isDesktopInit = typeof window !== 'undefined' && window.innerWidth >= 1024;
 let selectedCategory = 'all', currentPage = 1, itemsPerPage = _savedLayout === 'list' ? (_isDesktopInit ? 18 : 10) : (_savedLayout === 'grid' ? (_isDesktopInit ? 24 : 12) : (_isDesktopInit ? 16 : 8)), favorites = [];
 let adminAdsTab = 'active', LAST_NAV = 'home', searchQuery = '';
+let minPriceFilter = null, maxPriceFilter = null;
 let currentSortMode = localStorage.getItem('bs_sort_mode') || 'newest';
 let createMap = null, createMarker = null, detailMap = null, shopCreateMap = null, shopCreateMarker = null, showcaseMap = null;
 let pendingCreateImages = [], pendingEditImages = [];
@@ -35,25 +36,12 @@ let reports = [];
 let lastReportCount = 0;
 let lastShareBlob = null;
 let lastShareObjectUrl = null;
-let hasCloudMarqueeSettings = false;
-let MARQUEE_SETTINGS = { text: '', color: '#a8a8a8', fontSize: 13, speed: 20, direction: 'left', pauseOnHover: false };
 let BACKUPS_META = {};
 try {
   const savedBackups = localStorage.getItem('bs_backups_meta');
   if (savedBackups) BACKUPS_META = JSON.parse(savedBackups);
 } catch(e) {}
 
-let AVITOCASH_PRICES = { adPrice: 1, shopSubscription: 5, editPrice: 0, freeAdsCount: 0 };
-let AVITOCASH_RATE = 1;
-let TOPUP_REQUESTS = {};
-try {
-  const savedReqs = localStorage.getItem('bs_topup_requests');
-  if (savedReqs) TOPUP_REQUESTS = JSON.parse(savedReqs);
-} catch(e) {}
-let GIFT_CODES = {};
-let TRANSACTIONS = {};
-const MARQUEE_STORAGE_KEY = 'bs_marquee_text';
-const AVITOCASH_ID = '3adfe36abcbe52f1a4b008cd324082fb';
 const PLACEHOLDER_IMG = 'https://placehold.co/800x1000/1e293b/fff?text=Avito+Türk';
 let EXCHANGE_RATES = { TRY: 38.50 };
 let SYSTEM_CONFIG = { rulesAccepted: false, adminTab: 'overview' };
@@ -94,7 +82,6 @@ let users = [];
 let archivedUsers = [];
 let combos = [];
 let ads = [];
-let paymentSearchQuery = '';
 let suppressPop = false;
 let userCurrentCoords = null;
 let activeRadiusKm = 0;
@@ -121,11 +108,6 @@ const IGSVG = {
 /* ================= BASIC HELPERS ================= */
 const byId = id => document.getElementById(id);
 const _0xSCAdmin = () => !!(currentUser && currentUser.role === 'SUPERUSER');
-const _0xSCAmount = value => { const n = Number(value); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; };
-const _0xSCCode = () => 'AVT-' + Math.random().toString(36).slice(2, 8).toUpperCase() + '-' + Date.now().toString(36).toUpperCase().slice(-4);
-const _0xSCBalance = uid => { const u = users.find(x => x.uid === uid) || (currentUser && currentUser.uid === uid ? currentUser : null); return Number(u?.avitocashBalance ?? u?.shamcashBalance ?? 0); };
-const _0xGiftCode = () => 'GIFT-' + Math.random().toString(36).slice(2, 7).toUpperCase() + '-' + Date.now().toString(36).slice(-5).toUpperCase();
-const _0xSCPrices = () => ({ adPrice: _0xSCAmount(AVITOCASH_PRICES.adPrice), shopSubscription: _0xSCAmount(AVITOCASH_PRICES.shopSubscription), editPrice: _0xSCAmount(AVITOCASH_PRICES.editPrice) });
 
 /* ================= LOCALIZATION DICTIONARY & I18N ================= */
 let currentLang = localStorage.getItem('bs_app_lang') || 'tr';
@@ -140,13 +122,18 @@ const I18N = {
     nav_profile: 'Профиль',
     support: 'Техподдержка',
     change_theme: 'Сменить тему',
-    search: 'Поиск',
+    search: 'Поиск товаров, авто, жилья...',
     near_me: 'Рядом',
     all_regions: 'Все регионы',
     sort_newest: 'Новые',
     sort_cheapest: 'Дешевые',
     sort_expensive: 'Дорогие',
     sort_popular: 'Популярные',
+    price_from_ph: 'От $',
+    price_to_ph: 'До $',
+    smart_paste_btn: '📋 Вставить текст из WhatsApp / Telegram (автозаполнение)',
+    smart_paste_ph: 'Вставьте сюда готовый текст вашего объявления из группы WhatsApp или Telegram — мы сами заполним заголовок, цену, категорию и город!',
+    smart_paste_apply: 'Распознать и заполнить',
     shop_title_new: 'Открытие нового магазина',
     shop_title_edit: 'Редактирование магазина',
     shop_name_ph: 'Название магазина *',
@@ -226,13 +213,18 @@ const I18N = {
     nav_profile: 'Profilim',
     support: 'Destek',
     change_theme: 'Temayı Değiştir',
-    search: 'Arama...',
+    search: 'Ürün, araç, emlak ara...',
     near_me: 'Yakınımda',
     all_regions: 'Tüm İller',
     sort_newest: 'En Yeniler',
     sort_cheapest: 'En Ucuzlar',
     sort_expensive: 'En Pahalılar',
     sort_popular: 'Popülerler',
+    price_from_ph: 'Min $',
+    price_to_ph: 'Max $',
+    smart_paste_btn: '📋 WhatsApp / Telegram Metnini Yapıştır (Otomatik Doldur)',
+    smart_paste_ph: 'WhatsApp veya Telegram grubundaki hazır ilan metninizi buraya yapıştırın — başlık, fiyat, kategori ve şehri otomatik dolduralım!',
+    smart_paste_apply: 'Metni Çözümle ve Doldur',
     shop_title_new: 'Yeni Mağaza Aç',
     shop_title_edit: 'Mağazayı Düzenle',
     shop_name_ph: 'Mağaza Adı *',

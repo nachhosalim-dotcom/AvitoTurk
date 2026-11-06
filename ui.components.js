@@ -40,7 +40,7 @@ function comboToVirtualAd(c) {
   const owner = getComboOwner(c); 
   const shop = owner?.shop; 
   const images = items.map(a => (a.images && a.images[0]) || a.image).filter(Boolean).slice(0, 6); 
-const originalTotal = items.reduce((s, a) => s + adToUSD(a), 0);
+  const originalTotal = items.reduce((s, a) => s + adToUSD(a), 0);
   return { 
     id: c.id, 
     isCombo: true, 
@@ -49,8 +49,8 @@ const originalTotal = items.reduce((s, a) => s + adToUSD(a), 0);
     comboOriginalTotal: originalTotal, 
     title: c.title || 'Комбо-набор', 
     category: 'combo', 
-    region: shop?.region || 'DAM', 
-    city: shop?.name || 'Avito Türk', 
+    region: shop?.region || 'IST', 
+    city: shop?.name || 'Avito Türk',
     isFree: false, 
     isNegotiable: false, 
     isWomenOnly: false, 
@@ -595,7 +595,6 @@ if (selectedCategory === 'shops_dir') {
       if (isCombo || ad.category !== selectedCategory) return false;
     }
 if (selectedCategory !== 'favorites') {
-if (selectedCategory !== 'favorites') {
       if (region !== 'ALL' && ad.region !== region) return false;
       if (activeRadiusKm > 0 && userCurrentCoords) {
         if (!ad.lat || !ad.lng) return false;
@@ -604,8 +603,13 @@ if (selectedCategory !== 'favorites') {
         if (dist === null || dist > activeRadiusKm) return false;
       }
     }
-    }
-	if (q) {
+
+    // Фильтр диапазона цен (От $ — До $)
+    const effectivePriceUsd = adToUSD(ad);
+    if (minPriceFilter !== null && effectivePriceUsd < minPriceFilter) return false;
+    if (maxPriceFilter !== null && effectivePriceUsd > maxPriceFilter) return false;
+
+    if (q) {
       const cleanQ = q.toLowerCase().trim();
       const titleText = (ad.title || '').toLowerCase();
       const cityText = (ad.city || '').toLowerCase();
@@ -1598,7 +1602,14 @@ window.addEventListener('keydown', (e) => {
     else if (e.key === 'Escape') closeModal('modal-image-viewer');
   }
 });
-function initDetailMap(lat, lng) { const el = byId('detail-map'); if (!el || typeof L === 'undefined') return; if (detailMap) { detailMap.remove(); detailMap = null; } detailMap = L.map('detail-map', { dragging: false, zoomControl: false }).setView([lat, lng], 13); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(detailMap); L.marker([lat, lng]).addTo(detailMap); }
+function initDetailMap(lat, lng) { 
+  const el = byId('detail-map'); 
+  if (!el || typeof L === 'undefined') return; 
+  if (detailMap) { detailMap.remove(); detailMap = null; } 
+  detailMap = L.map('detail-map', { dragging: false, zoomControl: false }).setView([lat, lng], 13); 
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, attribution: '© Esri' }).addTo(detailMap); 
+  L.marker([lat, lng]).addTo(detailMap); 
+}
 function changeDetailPhoto(adId, dir, event) { if (event && event.stopPropagation) event.stopPropagation(); const ad = (typeof getListingById === 'function') ? getListingById(adId) : (ads.find(a => a.id === adId) || combos.find(x => x.id === adId)); if (!ad) return; const imgs = (ad.images && ad.images.length) ? ad.images : [ad.image || PLACEHOLDER_IMG]; if (imgs.length <= 1) return; currentDetailPhotoIndex = (currentDetailPhotoIndex + dir + imgs.length) % imgs.length; setDetailPhoto(adId, currentDetailPhotoIndex); }
 function setDetailPhoto(adId, idx) { const ad = (typeof getListingById === 'function') ? getListingById(adId) : (ads.find(a => a.id === adId) || combos.find(x => x.id === adId)); if (!ad) return; const imgs = (ad.images && ad.images.length) ? ad.images : [ad.image || PLACEHOLDER_IMG]; currentDetailPhotoIndex = idx; const m = byId('detail-main-img'), b = byId('detail-bg-blur'), c = byId('detail-photo-counter'); if (m) m.src = imgs[idx]; if (b) b.style.backgroundImage = `url('${imgs[idx]}')`; if (c) c.innerText = `${idx + 1} / ${imgs.length}`; imgs.forEach((_, i) => { const t = byId(`detail-thumb-${i}`); if (t) { t.style.borderColor = i === idx ? '#0095f6' : 'var(--ig-border)'; t.style.opacity = i === idx ? '1' : '.6'; } }); }
 
@@ -2647,8 +2658,8 @@ function initShopCreateMap() {
   if (!el || typeof L === 'undefined') return; 
   const lat = parseFloat(byId('shop-lat').value || 41.0082), lng = parseFloat(byId('shop-lng').value || 28.9784); 
   if (!shopCreateMap) { 
-    shopCreateMap = L.map('shop-create-map').setView([lat, lng], 12); 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(shopCreateMap); 
+shopCreateMap = L.map('shop-create-map').setView([lat, lng], 12); 
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, attribution: '© Esri' }).addTo(shopCreateMap);
     shopCreateMarker = L.marker([lat, lng], { draggable: true }).addTo(shopCreateMap); 
     shopCreateMarker.on('dragend', e => { 
       const ll = e.target.getLatLng(); 
@@ -2924,13 +2935,14 @@ async function removeQuickDiscountSubmit() {
     ad.oldPrice = null;
     if (supabaseClient) {
       try {
-        await supabaseClient.from('ads').update({ price: ad.price }).eq('id', ad.id);
+        await supabaseClient.from('ads').update({ price: ad.price, old_price: null }).eq('id', ad.id);
       } catch(err) {}
     }
     saveCachedAds();
     renderCategoryPills();
     renderAds();
-    showToast('Скидка отменена, возвращена базовая цена', 'info');
+    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+    showToast(isTr ? 'İndirim kaldırıldı, eski fiyata dönüldü' : 'Скидка отменена, возвращена базовая цена', 'info');
   }
   closeModal('modal-quick-discount');
   if (byId('modal-shop-showcase') && !byId('modal-shop-showcase').classList.contains('hidden')) {
@@ -3070,8 +3082,8 @@ function initShowcaseShopMap(lat, lng, storeName) {
     showcaseMap.remove(); 
     showcaseMap = null; 
   } 
-  showcaseMap = L.map('showcase-shop-map', { dragging: false, zoomControl: false }).setView([lat, lng], 13); 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(showcaseMap); 
+showcaseMap = L.map('showcase-shop-map', { dragging: false, zoomControl: false }).setView([lat, lng], 13); 
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, attribution: '© Esri' }).addTo(showcaseMap);
   L.marker([lat, lng]).addTo(showcaseMap).bindPopup(`<b>${storeName}</b>`).openPopup(); 
 }
 
@@ -3307,14 +3319,80 @@ async function removeShopCustomCategory(index) {
 
 function exportShopDatabaseJSON() {
   if (!currentUser || !currentUser.shop) return;
-  const d = { version: '1.1', type: 'AVITO_SHAM_SHOP_BACKUP', exportDate: new Date().toISOString(), shop: currentUser.shop, products: ads.filter(a => a.sellerUsername && a.sellerUsername.toLowerCase() === currentUser.username.toLowerCase()), combos: combos.filter(x => x.sellerUsername && x.sellerUsername.toLowerCase() === currentUser.username.toLowerCase()) };
+  const d = { version: '1.1', type: 'AVITO_TURK_SHOP_BACKUP', exportDate: new Date().toISOString(), shop: currentUser.shop, products: ads.filter(a => a.sellerUsername && a.sellerUsername.toLowerCase() === currentUser.username.toLowerCase()), combos: combos.filter(x => x.sellerUsername && x.sellerUsername.toLowerCase() === currentUser.username.toLowerCase()) };
   const a = document.createElement('a');
   a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(d, null, 2));
   a.download = `Shop_Backup_${Date.now()}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
-  showToast('Бэкап магазина выгружен!', 'success');
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+  showToast(isTr ? 'Mağaza yedeği indirildi!' : 'Бэкап магазина выгружен!', 'success');
+}
+
+function importShopDatabaseJSON(event) {
+  if (!currentUser || !currentUser.shop) return;
+  const f = event.target.files[0];
+  if (!f) return;
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+
+  showConfirmModal(
+    isTr ? 'Mağaza Yedeğini Yükle' : 'Импорт бэкапа магазина',
+    isTr ? 'Bu yedekten mağaza ayarları ve ürünler geri yüklensin mi?' : 'Восстановить настройки магазина и товары из этого файла бэкапа?',
+    () => {
+      const r = new FileReader();
+      r.onload = async e => {
+        try {
+          const d = JSON.parse(e.target.result);
+          if (d.shop) {
+            currentUser.shop = { ...currentUser.shop, ...d.shop };
+            if (supabaseClient && currentUser.uid) {
+              await supabaseClient.rpc('update_user_shop', {
+                p_identifier: currentUser.uid,
+                p_shop_data: currentUser.shop
+              });
+            }
+          }
+
+          if (Array.isArray(d.products) && d.products.length && supabaseClient) {
+            const myRestoredAds = d.products.map(p => ({
+              id: p.id || ('AD-' + Date.now().toString(36).toUpperCase()),
+              title: p.title,
+              category: p.category || 'electronics',
+              store_category: p.storeCategory || p.store_category || '',
+              region: p.region || currentUser.shop.region || 'IST',
+              city: p.city || currentUser.shop.name || 'İstanbul',
+              is_women_only: !!p.isWomenOnly,
+              is_free: !!p.isFree,
+              is_negotiable: !!p.isNegotiable,
+              price: Number(p.price || 0),
+              old_price: (p.oldPrice || p.old_price) ? Number(p.oldPrice || p.old_price) : null,
+              currency: p.currency || 'USD',
+              description: p.desc || p.description || '',
+              images: Array.isArray(p.images) ? p.images : [p.image || PLACEHOLDER_IMG],
+              image: p.image || (Array.isArray(p.images) ? p.images[0] : PLACEHOLDER_IMG),
+              seller_username: currentUser.username,
+              seller_uid: currentUser.uid || '',
+              seller_kunya: currentUser.kunya || currentUser.username,
+              seller_whatsapp: currentUser.shop.whatsapp || currentUser.whatsapp || '',
+              status: p.status || 'ACTIVE',
+              created_at: Number(p.createdAt || p.created_at || Date.now())
+            }));
+            await supabaseClient.from('ads').upsert(myRestoredAds);
+          }
+
+          saveUserSession(currentUser, true);
+          showToast(isTr ? 'Mağaza yedeği başarıyla yüklendi!' : 'Бэкап магазина успешно восстановлен!', 'success');
+          setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+          console.error(err);
+          showToast(isTr ? 'Yedek dosyası okunamadı' : 'Ошибка чтения файла бэкапа', 'error');
+        }
+      };
+      r.readAsText(f);
+    }
+  );
+  event.target.value = '';
 }
 
 async function exportFullDatabaseJSON() {
@@ -3445,7 +3523,7 @@ function importFullDatabaseJSON(event) {
             title: a.title,
             category: a.category,
             store_category: a.storeCategory || a.store_category || '',
-            region: a.region || 'DAM',
+            region: a.region || 'IST',
             city: a.city || '',
             is_women_only: !!a.isWomenOnly,
             is_free: !!a.isFree,
