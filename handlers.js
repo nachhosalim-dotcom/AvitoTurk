@@ -853,7 +853,7 @@ async function handleCreateAdSubmit(e) {
   // 2. Фоновая отправка в базу данных Supabase
   if (supabaseClient) {
     try {
-      const { error: adInsErr } = await supabaseClient.from('ads').insert({
+      const { error: insErr } = await supabaseClient.from('ads').insert({
         id: newAd.id,
         title: newAd.title,
         category: newAd.category,
@@ -880,12 +880,19 @@ async function handleCreateAdSubmit(e) {
         likes: [],
         views: 0
       });
-      if (adInsErr) {
-        console.error('Ad NOT saved to server:', adInsErr);
-        showToast((isTr ? 'İlan sunucuya kaydedilemedi: ' : 'Объявление не сохранилось на сервере: ') + (adInsErr.message || ''), 'error');
-      }
+      if (insErr) throw insErr;
     } catch (cloudErr) {
-      console.warn('Supabase network unreachable, saving ad locally:', cloudErr);
+      console.error('Не удалось сохранить объявление в базе:', cloudErr);
+      // откатываем «призрачное» объявление, чтобы лента не врала
+      ads = ads.filter(x => x.id !== newAd.id);
+      saveCachedAds();
+      renderAds();
+      const code = cloudErr && (cloudErr.code || cloudErr.status) ? ` [${cloudErr.code || cloudErr.status}]` : '';
+      let hint = '';
+      if (!currentUser.session_token) hint = isTr ? ' Lütfen çıkış yapıp tekrar giriş yapın.' : ' Выйдите и войдите в аккаунт заново.';
+      else if (cloudErr && (cloudErr.code === '42501')) hint = isTr ? ' Yetki hatası: oturumu yenileyin.' : ' Нет прав: перезайдите в аккаунт.';
+      else if (cloudErr && (cloudErr.code === '42P01' || cloudErr.code === 'PGRST205')) hint = isTr ? ' Veritabanı şeması kurulmamış.' : ' В базе нет таблицы: выполните supabase_schema.sql.';
+      showToast((isTr ? 'İlan kaydedilemedi' : 'Объявление не сохранено в базе') + code + '.' + hint, 'error');
     }
   }
 
@@ -1351,15 +1358,40 @@ async function handleAuthSubmit(e) {
           btn.disabled = false; btn.innerText = originalText; return;
         }
 
+        if (!regSuccessUser) {
+          const newDbUser = {
+            uid: uid,
+            username: username,
+            password_hash: passHash,
+            kunya: kunya || username,
+            gender: genderRadio.value,
+            whatsapp: waCheck.number,
+            avatar: null,
+            role: 'USER',
+            avitocash_balance: 0,
+            trial_balance: 10,
+            favorites: []
+          };
+
+          const { data: insData, error: insErr } = await supabaseClient.from('users').insert(newDbUser).select().single();
+          if (!insErr && insData) {
+            regSuccessUser = {
+              ...insData,
+              passwordHash: insData.password_hash,
+              avitocashBalance: Number(insData.avitocash_balance || 0),
+              trialBalance: Number(insData.trial_balance || 10),
+              favorites: []
+            };
+          } else if (insErr && (insErr.message.includes('duplicate') || insErr.message.includes('unique'))) {
+            showToast(currentLang === 'tr' ? 'Bu kullanıcı adı zaten kayıtlı' : 'Такой логин уже занят', 'error');
+            btn.disabled = false; btn.innerText = originalText; return;
+          }
+        }
       } catch (cloudErr) {
         console.warn('Direct registration cloud sync warning:', cloudErr);
       }
     }
 
-    if (!regSuccessUser && supabaseClient) {
-      showToast(currentLang === 'tr' ? 'Kayıt yapılamadı. Lütfen daha sonra tekrar deneyin' : 'Не удалось зарегистрироваться. Попробуйте позже', 'error');
-      btn.disabled = false; btn.innerText = originalText; return;
-    }
     if (!regSuccessUser) {
       regSuccessUser = {
         uid: uid,
@@ -1415,7 +1447,7 @@ async function handleAuthSubmit(e) {
         }
       }
 
-      if (!foundUser && !supabaseClient) {
+      if (!foundUser) {
         foundUser = users.find(u => 
           ((u.username && u.username.toLowerCase() === loginIdentifier.toLowerCase()) || 
            (u.whatsapp && u.whatsapp.replace(/\D/g, '') === loginIdentifier.replace(/\D/g, ''))) &&
@@ -1707,7 +1739,7 @@ const itemsHtml = await Promise.all(matches.map(async a => {
     }
     const catObj = categories.find(c => c.id === a.category);
     const catLabel = catObj ? t(catObj.name) : '';
-    return `<div onclick="openAdDetail('${jsArg(a.id)}'); renderSearchSuggestions('');" class="px-3 py-2 text-xs t1 hover:bg-field cursor-pointer flex items-center justify-between border-b b-ig last:border-0"><div class="min-w-0 flex-1"><span class="truncate font-semibold block">${escapeHTML(displayTitle)}</span>${catLabel ? `<span class="text-[9px] t2 truncate block">${escapeHTML(catLabel)} • ${escapeHTML(a.city || '')}</span>` : ''}</div><span class="text-[10px] text-blue-500 shrink-0 font-bold ml-2">$${Number(a.price || 0).toFixed(2)}</span></div>`;
+    return `<div onclick="openAdDetail('${a.id}'); renderSearchSuggestions('');" class="px-3 py-2 text-xs t1 hover:bg-field cursor-pointer flex items-center justify-between border-b b-ig last:border-0"><div class="min-w-0 flex-1"><span class="truncate font-semibold block">${displayTitle}</span>${catLabel ? `<span class="text-[9px] t2 truncate block">${catLabel} • ${a.city || ''}</span>` : ''}</div><span class="text-[10px] text-blue-500 shrink-0 font-bold ml-2">$${Number(a.price || 0).toFixed(2)}</span></div>`;
   }));
   const html = itemsHtml.join('');
   [listDesktop, listMobile].forEach(l => {
