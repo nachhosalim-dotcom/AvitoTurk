@@ -1575,6 +1575,8 @@ if (ads.length > 0 || combos.length > 0) {
 }
 
 restoreUserSession();
+await handleTelegramAutoLogin();
+
 // Запускаем обновление из сети в фоне (не блокирует экран)
 initSupabaseSync();
 fetchLiveExchangeRates();
@@ -2193,4 +2195,53 @@ function handlePriceRangeFilter() {
       resetPageAndRender();
     }
   }, 250);
+}
+/* ================= TELEGRAM AUTO-LOGIN ================= */
+async function handleTelegramAutoLogin() {
+  if (currentUser) return; // Человек уже вошёл на устройстве
+  if (typeof window.Telegram === 'undefined' || !window.Telegram.WebApp) return;
+
+  const tg = window.Telegram.WebApp;
+  try {
+    tg.ready();
+    tg.expand();
+  } catch (e) {}
+
+  const tgUser = tg.initDataUnsafe?.user;
+  if (!tgUser || !tgUser.id) return;
+
+  if (!supabaseClient) return;
+
+  try {
+    const { data: res, error } = await supabaseClient.rpc('auth_or_register_telegram', {
+      p_tg_id: tgUser.id,
+      p_first_name: tgUser.first_name || '',
+      p_last_name: tgUser.last_name || '',
+      p_username: tgUser.username || null,
+      p_photo_url: tgUser.photo_url || null
+    });
+
+    if (error || !res || !res.success) {
+      console.warn('Telegram auth error:', error || res?.error);
+      return;
+    }
+
+    const authUser = {
+      ...res.user,
+      passwordHash: res.user.password_hash,
+      favorites: []
+    };
+
+    const idx = users.findIndex(u => u.uid === authUser.uid);
+    if (idx !== -1) users[idx] = authUser;
+    else users.push(authUser);
+
+    saveUserSession(authUser, true);
+    updateAuthUI();
+
+    const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+    showToast(isTr ? `Hoş geldiniz, ${authUser.kunya}!` : `Добро пожаловать, ${authUser.kunya}!`, 'success');
+  } catch (err) {
+    console.error('Telegram auto-login fail:', err);
+  }
 }
