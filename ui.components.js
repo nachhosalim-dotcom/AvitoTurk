@@ -1510,7 +1510,16 @@ ${!isRealOwner && !ad.isFree ? `
       </div>` : ''}
 	  
 <div class="flex items-center gap-2 pt-2 shrink-0">
-        ${!isRealOwner ? `<a href="https://wa.me/${(wa || '').replace(/[^0-9]/g, '')}?text=${buildWhatsAppMessage(ad, inQ, rank)}" target="_blank" class="flex-1 min-w-0 h-11 rounded-xl text-white text-xs font-extrabold flex items-center justify-center gap-2 transition active:scale-95 shadow-md" style="background:#25D366"><i class="fa-brands fa-whatsapp text-lg shrink-0"></i><span class="truncate">${t('Связаться через WhatsApp')}</span></a>` : ''}
+        ${!isRealOwner ? (() => {
+  const cleanWa = (wa || '').replace(/[^0-9]/g, '');
+  if (cleanWa && cleanWa.length >= 10) {
+    return `<a href="https://wa.me/${cleanWa}?text=${buildWhatsAppMessage(ad, inQ, rank)}" target="_blank" class="flex-1 min-w-0 h-11 rounded-xl text-white text-xs font-extrabold flex items-center justify-center gap-2 transition active:scale-95 shadow-md" style="background:#25D366"><i class="fa-brands fa-whatsapp text-lg shrink-0"></i><span class="truncate">${t('Связаться через WhatsApp')}</span></a>`;
+  } else if (ad.sellerUsername) {
+    return `<a href="https://t.me/${ad.sellerUsername.replace('@', '')}" target="_blank" class="flex-1 min-w-0 h-11 rounded-xl text-white text-xs font-extrabold flex items-center justify-center gap-2 transition active:scale-95 shadow-md" style="background:#229ED9"><i class="fa-brands fa-telegram text-lg shrink-0"></i><span class="truncate">${currentLang === 'tr' ? 'Telegram ile İletişim' : 'Написать в Telegram'}</span></a>`;
+  } else {
+    return `<button onclick="showToast('${currentLang === 'tr' ? 'İletişim bilgisi bulunamadı' : 'Контакты продавца не указаны'}', 'warning')" class="flex-1 min-w-0 h-11 rounded-xl bg-field border b-ig t2 text-xs font-bold flex items-center justify-center gap-2"><i class="fa-solid fa-comment-slash"></i> <span>${t('Нет контактов')}</span></button>`;
+  }
+})() : ''}
         <button onclick="shareAd('${ad.id}')" class="h-11 w-11 rounded-xl border b-ig bg-field hover:bg-ig flex items-center justify-center text-blue-500 shrink-0 transition active:scale-95 shadow-sm" title="${t('Поделиться')}"><i class="fa-solid fa-paper-plane text-base"></i></button>
       </div>
 	  
