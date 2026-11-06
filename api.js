@@ -96,6 +96,10 @@ const isAdminUser = !!(currentUser && (currentUser.role === 'SUPERUSER' || curre
           try { logout(); } catch (e) {}
         }
       }
+      else if (currentUser && !currentUser.session_token) {
+        // сессия от старой версии без токена — нужен повторный вход
+        try { logout(); showToast(currentLang === 'tr' ? 'Lütfen tekrar giriş yapın' : 'Войдите в аккаунт заново', 'info'); } catch (e) {}
+      }
       return { data: rows };
     })();
 
@@ -233,9 +237,8 @@ async function uploadFileToSupabaseStorage(file, bucket = 'listings') {
   const compressed = await compressSingleImageFile(file, 1200, 1200, 0.75);
   const filePath = `ad_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
   
-  const directClient = (SUPABASE_CONFIGURED && typeof window.supabase !== 'undefined')
-    ? window.supabase.createClient(SUPABASE_DIRECT_URL, SUPABASE_ANON_KEY)
-    : supabaseClient;
+  // тот же клиент, что и для остальных запросов: он добавляет токен сессии (нужен для политик хранилища)
+  const directClient = supabaseClient;
 
   if (!directClient) throw new Error('Supabase client не инициализирован');
 

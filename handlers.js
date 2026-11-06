@@ -1356,9 +1356,14 @@ async function handleAuthSubmit(e) {
         } else if (regRes && !regRes.success && regRes.error) {
           showToast(regRes.error, 'error');
           btn.disabled = false; btn.innerText = originalText; return;
+        } else if (regErr) {
+          console.error('register_new_user error:', regErr);
+          showToast((currentLang === 'tr' ? 'Kayıt başarısız: ' : 'Регистрация не удалась: ') + (regErr.message || regErr.code || 'ошибка базы') +
+            (regErr.code === 'PGRST202' || /function/i.test(regErr.message || '') ? (currentLang === 'tr' ? ' (veritabanı şeması kurulmamış)' : ' — в базе не выполнен supabase_schema.sql') : ''), 'error');
+          btn.disabled = false; btn.innerText = originalText; return;
         }
 
-        if (!regSuccessUser) {
+        if (false && !regSuccessUser) {
           const newDbUser = {
             uid: uid,
             username: username,
@@ -1392,6 +1397,10 @@ async function handleAuthSubmit(e) {
       }
     }
 
+    if (!regSuccessUser && supabaseClient) {
+      showToast(currentLang === 'tr' ? 'Sunucuya ulaşılamadı. Tekrar deneyin.' : 'Нет связи с сервером. Попробуйте ещё раз.', 'error');
+      btn.disabled = false; btn.innerText = originalText; return;
+    }
     if (!regSuccessUser) {
       regSuccessUser = {
         uid: uid,
@@ -1444,10 +1453,15 @@ async function handleAuthSubmit(e) {
             avitocashBalance: Number(res.user.avitocash_balance || 0),
             trialBalance: Number(res.user.trial_balance || 0)
           };
+        } else if (res && res.error) {
+          showToast(res.error, 'error'); btn.disabled = false; btn.innerText = originalText; return;
+        } else if (error) {
+          showToast((currentLang === 'tr' ? 'Giriş hatası: ' : 'Ошибка входа: ') + (error.message || error.code) + (error.code === 'PGRST202' ? ' — в базе не выполнен supabase_schema.sql' : ''), 'error');
+          btn.disabled = false; btn.innerText = originalText; return;
         }
       }
 
-      if (!foundUser) {
+      if (!foundUser && !supabaseClient) {
         foundUser = users.find(u => 
           ((u.username && u.username.toLowerCase() === loginIdentifier.toLowerCase()) || 
            (u.whatsapp && u.whatsapp.replace(/\D/g, '') === loginIdentifier.replace(/\D/g, ''))) &&
