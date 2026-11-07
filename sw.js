@@ -1,5 +1,5 @@
 /* Avito Türk — Service Worker v2: офлайн-оболочка + быстрый повторный запуск */
-const VERSION = 'avito-turk-v3';
+const VERSION = 'avito-turk-v4';
 const SHELL = ['/', '/index.html', '/supabase-config.js', '/config.js', '/api.js', '/ui.components.js', '/handlers.js'];
 
 self.addEventListener('install', (e) => {

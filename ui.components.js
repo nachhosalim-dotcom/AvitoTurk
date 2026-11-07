@@ -1055,9 +1055,9 @@ function renderAdminTabContent() {
                                 </div>
                             </div>
                         </div>
-                        <div class="text-right shrink-0 bg-field px-2.5 py-1 rounded-lg border b-ig">
-                            <div class="text-[9px] t2 uppercase">Баланс</div>
-                            <div class="text-xs font-extrabold" style="color:#f59e0b">${bal.toFixed(2)} AC</div>
+<div class="text-right shrink-0 bg-field px-2.5 py-1 rounded-lg border b-ig">
+                            <div class="text-[9px] t2 uppercase">${t('Объявлений')}</div>
+                            <div class="text-xs font-extrabold t1">${ads.filter(a => a.sellerUsername && a.sellerUsername.toLowerCase() === u.username.toLowerCase()).length}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 pt-2 border-t b-ig justify-end flex-wrap">
@@ -1070,9 +1070,7 @@ function renderAdminTabContent() {
                         <button onclick="toggleFreezeUser('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="${u.frozen ? 'background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)' : 'background:rgba(96,165,250,.1);color:#60a5fa;border-color:rgba(96,165,250,.3)'}" title="${u.frozen ? 'Разморозить' : 'Заморозить'}">
                             <i class="fa-solid ${u.frozen ? 'fa-lock-open' : 'fa-lock'}"></i>
                         </button>
-                        <button onclick="seizeFunds('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.3)" title="Взыскать средства в свою пользу">
-                            <i class="fa-solid fa-coins"></i>
-                        </button>
+<!-- Кнопка биллинга удалена -->
                         <button onclick="archiveUserWithConfirm('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(147,51,234,.1);color:#a855f7;border-color:rgba(147,51,234,.3)" title="Перенести в архив">
                             <i class="fa-solid fa-box-archive"></i>
                         </button>

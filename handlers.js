@@ -54,15 +54,19 @@ function openModal(id) {
   const m = byId(id); 
   if (!m) return; 
   m.classList.remove('hidden'); 
+  m.style.display = 'flex';
   if (!modalStack.includes(id)) modalStack.push(id); 
-  m.style.zIndex = String(500 + modalStack.indexOf(id) * 30); 
+  m.style.zIndex = id === 'modal-tg-gender' ? '999999' : String(500 + modalStack.indexOf(id) * 30); 
   document.body.classList.add('overflow-hidden'); 
   try { history.pushState({ appModal: id }, ''); } catch (e) {} 
 }
 
 function closeModal(id) { 
   const m = byId(id); 
-  if (m) m.classList.add('hidden'); 
+  if (m) {
+    m.classList.add('hidden'); 
+    m.style.display = 'none';
+  }
   const wasTop = modalStack[modalStack.length - 1] === id; 
   modalStack = modalStack.filter(x => x !== id); 
   if (modalStack.length === 0) document.body.classList.remove('overflow-hidden'); 
@@ -588,17 +592,9 @@ function openCreateAdModal() {
     if (userNameEl) userNameEl.innerText = `${currentUser.kunya || currentUser.username} (@${currentUser.username})`;
   }
   
-// Фоновый запрос GPS для автоматического выставления региона
-  if (navigator.geolocation && (!userCurrentCoords || !userCurrentCoords.lat)) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      userCurrentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      if (byId('ad-lat')) byId('ad-lat').value = pos.coords.latitude.toFixed(6);
-      if (byId('ad-lng')) byId('ad-lng').value = pos.coords.longitude.toFixed(6);
-      const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
-      const sumEl = byId('ad-location-summary');
-      if (sumEl) sumEl.innerText = isTr ? `Konum: GPS belirlendi (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})` : `Локация: GPS определена (${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)})`;
-    }, () => {}, { timeout: 7000 });
-  }
+// Сброс и подготовка приватного режима геолокации
+  sellerGeoMode = 'fuzzy';
+  updateLocationSummaryUI();
 
   const savedLocation = localStorage.getItem('bs_last_seller_location');
   if (savedLocation && (!localStorage.getItem('bs_ad_draft'))) {
@@ -646,6 +642,104 @@ openModal('modal-create-ad');
       detectCategoryByTitle(titleField.value);
     };
   }
+}
+
+/* ================= ПРИВАТНОСТЬ ГЕОЛОКАЦИИ (РАЙОН VS ТОЧНАЯ) ================= */
+let sellerGeoMode = 'fuzzy'; // 'fuzzy' (район 2-3 км) или 'exact' (точная точка)
+
+function updateLocationSummaryUI() {
+  const sumEl = byId('ad-location-summary');
+  const badgeEl = byId('geo-status-badge');
+  const btnFuzzy = byId('btn-geo-fuzzy');
+  const btnExact = byId('btn-geo-exact');
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+
+  if (btnFuzzy && btnExact) {
+    if (sellerGeoMode === 'fuzzy') {
+      btnFuzzy.style.background = 'rgba(16,185,129,.15)';
+      btnFuzzy.style.color = '#10b981';
+      btnFuzzy.style.borderColor = 'rgba(16,185,129,.4)';
+
+      btnExact.style.background = 'var(--ig-card)';
+      btnExact.style.color = 'var(--ig-text2)';
+      btnExact.style.borderColor = 'var(--ig-border)';
+    } else {
+      btnExact.style.background = 'rgba(0,149,246,.15)';
+      btnExact.style.color = '#0095f6';
+      btnExact.style.borderColor = 'rgba(0,149,246,.4)';
+
+      btnFuzzy.style.background = 'var(--ig-card)';
+      btnFuzzy.style.color = 'var(--ig-text2)';
+      btnFuzzy.style.borderColor = 'var(--ig-border)';
+    }
+  }
+
+  const curCity = byId('ad-city')?.value || (byId('ad-region')?.value ? getRegionName(byId('ad-region').value) : 'Стамбул');
+
+  if (sumEl) {
+    if (sellerGeoMode === 'fuzzy') {
+      sumEl.innerHTML = isTr 
+        ? `<i class="fa-solid fa-shield-halved text-emerald-500"></i> ${curCity} (Semt / ~2-3 km)` 
+        : `<i class="fa-solid fa-shield-halved text-emerald-500"></i> ${curCity} (Район ~2-3 км)`;
+      if (badgeEl) badgeEl.innerText = isTr ? 'Gizlilik Aktif' : 'Приватность активна';
+    } else {
+      sumEl.innerHTML = isTr 
+        ? `<i class="fa-solid fa-crosshairs text-blue-500"></i> ${curCity} (Tam Konum)` 
+        : `<i class="fa-solid fa-crosshairs text-blue-500"></i> ${curCity} (Точная точка)`;
+      if (badgeEl) badgeEl.innerText = isTr ? 'Tam Konum' : 'Точные координаты';
+    }
+  }
+}
+
+function requestSellerLocation(mode = 'fuzzy') {
+  sellerGeoMode = mode;
+  const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
+
+  if (!navigator.geolocation) {
+    showToast(isTr ? 'Cihazınızda GPS desteklenmiyor' : 'GPS не поддерживается устройством', 'warning');
+    return;
+  }
+
+  showToast(isTr ? 'Konum alınıyor...' : 'Определяем местоположение...', 'info');
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      let lat = pos.coords.latitude;
+      let lng = pos.coords.longitude;
+
+      // Если выбран безопасный режим «Район» — размываем координаты на 1.5–2.5 км
+      if (mode === 'fuzzy') {
+        // 0.015 градуса ≈ 1.6–2.2 км
+        const offsetLat = (Math.random() - 0.5) * 0.030;
+        const offsetLng = (Math.random() - 0.5) * 0.030;
+        lat += offsetLat;
+        lng += offsetLng;
+      }
+
+      if (byId('ad-lat')) byId('ad-lat').value = lat.toFixed(6);
+      if (byId('ad-lng')) byId('ad-lng').value = lng.toFixed(6);
+
+      // Обновляем маркер на мини-карте (если карта инициализирована)
+      if (createMap && createMarker) {
+        createMap.setView([lat, lng], mode === 'fuzzy' ? 13 : 15);
+        createMarker.setLatLng([lat, lng]);
+      }
+
+      updateLocationSummaryUI();
+      showToast(
+        mode === 'fuzzy' 
+          ? (isTr ? 'Semt konumu belirlendi (Ev gizlendi)' : 'Указан район (~2-3 км). Ваш точный дом скрыт!') 
+          : (isTr ? 'Tam konum belirlendi' : 'Установлена точная геопозиция'),
+        'success'
+      );
+    },
+    (err) => {
+      console.warn('Geo error:', err);
+      showToast(isTr ? 'Konum izni verilmedi. Şehri listeden seçebilirsiniz.' : 'Доступ к геопозиции не предоставлен. Город выбран из списка.', 'warning');
+      updateLocationSummaryUI();
+    },
+    { enableHighAccuracy: mode === 'exact', timeout: 8000 }
+  );
 }
 
 function detectCategoryByTitle(text) {
@@ -1363,12 +1457,10 @@ async function handleAuthSubmit(e) {
           p_avatar: null
         });
 
-        if (regRes && regRes.success && regRes.user) {
+if (regRes && regRes.success && regRes.user) {
           regSuccessUser = {
             ...regRes.user,
             passwordHash: regRes.user.password_hash,
-            avitocashBalance: Number(regRes.user.avitocash_balance || 0),
-            trialBalance: Number(regRes.user.trial_balance || 10),
             favorites: []
           };
         } else if (regRes && !regRes.success && regRes.error) {
@@ -1419,7 +1511,7 @@ async function handleAuthSubmit(e) {
       showToast(currentLang === 'tr' ? 'Sunucuya ulaşılamadı. Tekrar deneyin.' : 'Нет связи с сервером. Попробуйте ещё раз.', 'error');
       btn.disabled = false; btn.innerText = originalText; return;
     }
-    if (!regSuccessUser) {
+if (!regSuccessUser) {
       regSuccessUser = {
         uid: uid,
         username: username,
@@ -1429,8 +1521,6 @@ async function handleAuthSubmit(e) {
         whatsapp: waCheck.number,
         avatar: null,
         role: 'USER',
-        avitocashBalance: 0,
-        trialBalance: 10,
         favorites: []
       };
     }
@@ -1464,12 +1554,10 @@ async function handleAuthSubmit(e) {
           p_username: loginIdentifier,
           p_password_hash: password
         });
-        if (res && res.success && res.user) {
+if (res && res.success && res.user) {
           foundUser = {
             ...res.user,
-            passwordHash: res.user.password_hash,
-            avitocashBalance: Number(res.user.avitocash_balance || 0),
-            trialBalance: Number(res.user.trial_balance || 0)
+            passwordHash: res.user.password_hash
           };
         } else if (res && res.error) {
           showToast(res.error, 'error'); btn.disabled = false; btn.innerText = originalText; return;
@@ -2196,9 +2284,61 @@ function handlePriceRangeFilter() {
     }
   }, 250);
 }
-/* ================= TELEGRAM AUTO-LOGIN ================= */
-async function handleTelegramAutoLogin() {
-  if (currentUser) return; // Человек уже вошёл на устройстве
+/* ================= TELEGRAM ONBOARDING (LANG + RULES + GENDER) ================= */
+let pendingTelegramUser = null;
+let tgOnboardSelectedLang = (typeof currentLang !== 'undefined' && currentLang === 'tr') ? 'tr' : 'ru';
+
+function setTgOnboardingLang(lang) {
+  tgOnboardSelectedLang = lang;
+  if (typeof changeLanguage === 'function') {
+    changeLanguage(lang);
+  }
+
+  const bRu = byId('tg-onboard-lang-ru');
+  const bTr = byId('tg-onboard-lang-tr');
+  if (bRu && bTr) {
+    if (lang === 'ru') {
+      bRu.className = 'px-3 py-1 rounded-lg text-xs font-bold transition-all bg-blue-500 text-white shadow-sm';
+      bTr.className = 'px-3 py-1 rounded-lg text-xs font-bold transition-all t2 hover:text-white';
+    } else {
+      bTr.className = 'px-3 py-1 rounded-lg text-xs font-bold transition-all bg-blue-500 text-white shadow-sm';
+      bRu.className = 'px-3 py-1 rounded-lg text-xs font-bold transition-all t2 hover:text-white';
+    }
+  }
+
+  const isTr = lang === 'tr';
+  const uName = pendingTelegramUser ? (pendingTelegramUser.first_name || '') : '';
+
+  const titleEl = byId('tg-onboard-title');
+  if (titleEl) titleEl.innerText = isTr ? `Hoş geldiniz${uName ? ', ' + uName : ''}!` : `Добро пожаловать${uName ? ', ' + uName : ''}!`;
+
+  const rulesTitle = byId('tg-onboard-rules-title');
+  if (rulesTitle) rulesTitle.innerText = isTr ? 'Platformun Kesin Kuralları:' : 'Строгие правила площадки:';
+
+  const rulesText = byId('tg-onboard-rules-text');
+  if (rulesText) {
+    rulesText.innerHTML = isTr
+      ? 'Her türlü <b>silah, mühimmat, uyuşturucu, yasa dışı madde ve kaçak ürünlerin</b> yayınlanması kesinlikle yasaktır. Kuralları ihlal eden hesaplar kalıcı olarak engellenir. Bu servis yalnızca sivil bir seri ilan platformudur.'
+      : 'Категорически <b>запрещена</b> публикация любого оружия, боеприпасов, комплектующих, запрещенных веществ, наркотиков и контрабанды. Нарушители блокируются навсегда с передачей данных. Сервис является исключительно гражданской торговой площадкой.';
+  }
+
+  const genderPrompt = byId('tg-onboard-gender-prompt');
+  if (genderPrompt) genderPrompt.innerText = isTr ? 'Girişi tamamlamak için cinsiyetinizi seçin:' : 'Выберите ваш пол для завершения входа:';
+
+  const genderSub = byId('tg-onboard-gender-sub');
+  if (genderSub) genderSub.innerText = isTr ? '(Kadınlara özel ilanların gizliliği için zorunludur)' : '(Необходимо для разделения закрытых женских объявлений)';
+
+const btnMale = byId('tg-onboard-btn-male');
+  if (btnMale) btnMale.innerText = isTr ? 'Erkek' : 'Мужской';
+
+  const btnFemale = byId('tg-onboard-btn-female');
+  if (btnFemale) btnFemale.innerText = isTr ? 'Kadın' : 'Женский';
+
+  const footNote = byId('tg-onboard-footer-note');
+  if (footNote) footNote.innerText = isTr ? 'Cinsiyet seçerek platform kurallarını kabul etmiş olursunuz.' : 'Нажимая на кнопку пола, вы подтверждаете соблюдение правил площадки.';
+}
+
+async function handleTelegramAutoLogin(selectedGender = null) {
   if (typeof window.Telegram === 'undefined' || !window.Telegram.WebApp) return;
 
   const tg = window.Telegram.WebApp;
@@ -2210,16 +2350,36 @@ async function handleTelegramAutoLogin() {
   const tgUser = tg.initDataUnsafe?.user;
   if (!tgUser || !tgUser.id) return;
 
+  if (currentUser && currentUser.shop?.telegram_id === String(tgUser.id)) return;
+
+  let attempts = 0;
+  while (!supabaseClient && attempts < 10) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
   if (!supabaseClient) return;
 
   try {
-    const { data: res, error } = await supabaseClient.rpc('auth_or_register_telegram', {
+    const payload = {
       p_tg_id: tgUser.id,
       p_first_name: tgUser.first_name || '',
       p_last_name: tgUser.last_name || '',
       p_username: tgUser.username || null,
-      p_photo_url: tgUser.photo_url || null
-    });
+      p_photo_url: tgUser.photo_url || null,
+      p_gender: selectedGender
+    };
+
+    const { data: res, error } = await supabaseClient.rpc('auth_or_register_telegram', payload);
+
+    if (res && res.need_gender) {
+      pendingTelegramUser = tgUser;
+      // Если язык пользователя Telegram турецкий — ставим TR по умолчанию, иначе RU
+      const tgLangCode = (tgUser.language_code || '').toLowerCase();
+      const initialLang = tgLangCode.startsWith('tr') ? 'tr' : 'ru';
+      setTgOnboardingLang(initialLang);
+      openModal('modal-tg-gender');
+      return;
+    }
 
     if (error || !res || !res.success) {
       console.warn('Telegram auth error:', error || res?.error);
@@ -2229,7 +2389,7 @@ async function handleTelegramAutoLogin() {
     const authUser = {
       ...res.user,
       passwordHash: res.user.password_hash,
-      favorites: []
+      favorites: Array.isArray(res.user.favorites) ? res.user.favorites : []
     };
 
     const idx = users.findIndex(u => u.uid === authUser.uid);
@@ -2237,11 +2397,21 @@ async function handleTelegramAutoLogin() {
     else users.push(authUser);
 
     saveUserSession(authUser, true);
+    closeModal('modal-auth');
+    closeModal('modal-tg-gender');
     updateAuthUI();
 
     const isTr = typeof currentLang !== 'undefined' && currentLang === 'tr';
-    showToast(isTr ? `Hoş geldiniz, ${authUser.kunya}!` : `Добро пожаловать, ${authUser.kunya}!`, 'success');
+    const welcomeName = authUser.kunya || authUser.username;
+    showToast(isTr ? `Giriş yapıldı: ${welcomeName}` : `Вы вошли как ${welcomeName}`, 'success');
   } catch (err) {
     console.error('Telegram auto-login fail:', err);
   }
+}
+
+async function submitTelegramGender(gender) {
+  if (!gender || (gender !== 'MALE' && gender !== 'FEMALE')) return;
+  const isTr = tgOnboardSelectedLang === 'tr';
+  showToast(isTr ? 'Hesap oluşturuluyor...' : 'Создаем профиль...', 'info');
+  await handleTelegramAutoLogin(gender);
 }
