@@ -1,15 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 
-const BOT_TOKEN = '9087986140:AAGq08Q5sSbM-ibyrqJ7bluZbq1rvq5wJBM';
-const SUPABASE_URL = 'https://ilpwbpeznuqoyajipooc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlscHdicGV6bnVxb3lhamlwb29jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MzkwMDkzOSwiZXhwIjoyMTA5NDc2OTM5fQ.FKynoL3RwjCFR7eiJHzHYUZeU8aQIZgj39Wf3ngE3fc';
+// Секреты берутся из переменных окружения Vercel (Settings → Environment Variables):
+//   TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_KEY
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY; // service_role: только на сервере, никогда в браузере
+const TRY_PER_USD = Number(process.env.TRY_PER_USD) || 38.5; // актуальный курс можно менять в Vercel без правки кода
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const SITE_URL = 'https://avito-turk.vercel.app';
+const OPEN_APP_BUTTON = { reply_markup: { inline_keyboard: [[{ text: '📲 Открыть Avito Türk', web_app: { url: SITE_URL } }]] } };
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
 export default async function handler(req, res) {
   // Telegram шлет только POST запросы
   if (req.method !== 'POST') {
     return res.status(200).send('OK (Endpoint is live)');
+  }
+
+  // Принимаем только запросы, которые реально пришли от Telegram (секрет задаётся в setWebhook)
+  if (!WEBHOOK_SECRET || req.headers['x-telegram-bot-api-secret-token'] !== WEBHOOK_SECRET) {
+    return res.status(401).send('Unauthorized');
   }
 
   const update = req.body;
@@ -21,7 +33,7 @@ export default async function handler(req, res) {
 
   // Ответ на команду /start
   if (text.startsWith('/start')) {
-    await sendTgMessage(chatId, 'Отправьте сюда фото товара с описанием и ценой, и оно появится на сайте!');
+    await sendTgMessage(chatId, 'Добро пожаловать! Откройте приложение — аккаунт создастся автоматически. После этого присылайте сюда фото товара с описанием и ценой, и оно появится на сайте.', OPEN_APP_BUTTON);
     return res.status(200).send('OK');
   }
 
@@ -32,24 +44,29 @@ export default async function handler(req, res) {
   try {
     const fromUser = msg.from || { id: chatId, first_name: 'Пользователь', username: 'tg_user' };
 
-    // 1. Авторизация / регистрация профиля через RPC
-    let sellerUid = 'u_tg_' + fromUser.id;
-    let sellerUsername = fromUser.username || `tg_${fromUser.id}`;
-    let sellerKunya = [fromUser.first_name, fromUser.last_name].filter(Boolean).join(' ') || sellerUsername;
-
-    const { data: userRes } = await supabase.rpc('auth_or_register_telegram', {
+    // 1. Профиль: публиковать могут только зарегистрированные аккаунты
+    const { data: userRes, error: userErr } = await supabase.rpc('auth_or_register_telegram', {
       p_tg_id: fromUser.id,
       p_first_name: fromUser.first_name || '',
       p_last_name: fromUser.last_name || '',
       p_username: fromUser.username || null,
       p_photo_url: null
     });
+    if (userErr) console.error('auth_or_register_telegram error:', userErr);
 
-    if (userRes?.user?.uid) {
-      sellerUid = userRes.user.uid;
-      sellerUsername = userRes.user.username;
-      sellerKunya = userRes.user.kunya || sellerKunya;
+    if (!userRes?.success || !userRes?.user?.uid) {
+      // новый пользователь (нужен выбор пола) или ошибка — без аккаунта объявление не публикуем
+      await sendTgMessage(chatId, '👋 Чтобы публиковать объявления через бота, сначала завершите регистрацию: откройте приложение и выберите пол — аккаунт создастся автоматически. После этого пришлите объявление ещё раз.', OPEN_APP_BUTTON);
+      return res.status(200).send('Registration required');
     }
+    if (userRes.user.frozen || userRes.user.is_archived) {
+      await sendTgMessage(chatId, '⛔ Ваш аккаунт ограничен. Публикация недоступна.');
+      return res.status(200).send('Blocked');
+    }
+
+    const sellerUid = userRes.user.uid;
+    const sellerUsername = userRes.user.username;
+    const sellerKunya = userRes.user.kunya || [fromUser.first_name, fromUser.last_name].filter(Boolean).join(' ') || sellerUsername;
 
     // 2. Скачивание фото из Telegram и сохранение в Supabase Storage
     let imageUrls = [];
@@ -135,7 +152,7 @@ if (fileJson?.result?.file_path) {
   }
 }
 
-async function sendTgMessage(chatId, textHtml) {
+async function sendTgMessage(chatId, textHtml, extra = {}) {
   try {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -144,7 +161,8 @@ async function sendTgMessage(chatId, textHtml) {
         chat_id: chatId,
         text: textHtml,
         parse_mode: 'HTML',
-        disable_web_page_preview: false
+        disable_web_page_preview: false,
+        ...extra
       })
     });
   } catch (e) {}
@@ -162,7 +180,7 @@ function parseTelegramText(rawText) {
   if (usdMatch) {
     price = parseFloat(usdMatch[1].replace(',', '.'));
   } else if (tryMatch) {
-    price = Math.round(parseFloat(tryMatch[1].replace(',', '.')) / 38.5);
+    price = Math.round(parseFloat(tryMatch[1].replace(',', '.')) / TRY_PER_USD);
   } else if (/договор|pazarlık/i.test(text)) {
     isNegotiable = true;
   }
