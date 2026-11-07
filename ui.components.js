@@ -1415,6 +1415,7 @@ function buildWhatsAppMessage(ad, inQ, rank) {
 }
 
 async function openAdDetail(adId, countView = true) {
+  window._lastOpenedAdId = adId;
   if (typeof adId === 'string' && adId.indexOf('COMBO-') === 0) { openComboDetail(adId); return; }
   const ad = ads.find(a => a.id === adId);
   if (!ad) return;

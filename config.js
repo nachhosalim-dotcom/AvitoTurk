@@ -329,6 +329,99 @@ const CATEGORY_I18N = {
   'Прочее': { ru: 'Прочее', tr: 'Diğer' }
 };
 
+const DIRECT_PHRASES_TR = {
+  'Главная': 'Ana Sayfa',
+  'Магазины': 'Mağazalar',
+  'Создать': 'İlan Ver',
+  'Избранное': 'Favoriler',
+  'Профиль': 'Profilim',
+  'Все': 'Tümü',
+  'Для женщин 🌸': 'Kadınlara Özel 🌸',
+  'Даром 🎁': 'Ücretsiz 🎁',
+  'Скидки': 'İndirimler',
+  'Акции': 'Kampanyalar',
+  'КОМБО': 'KOMBO',
+  'товаров': 'ürün',
+  'Экономия:': 'Kazanç:',
+  'ГЛАВНАЯ': 'ANA FOTO',
+  'Категория *': 'Kategori *',
+  'У магазина пока нет активных товаров': 'Mağazanın henüz aktif ürünü yok',
+  'Выберите минимум 2 товара для создания комбо. Выбрано:': 'Kombo için en az 2 ürün seçin. Seçilen:',
+  'Товаров в комплекте:': 'Paketteki ürün sayısı:',
+  'По отдельности:': 'Ayrı ayrı:',
+  'Цена акции:': 'Kampanya fiyatı:',
+  'выгода': 'kazanç',
+  'нет скидки': 'indirim yok',
+  'Подтвержденных магазинов в данном регионе пока нет.': 'Bu bölgede henüz onaylı mağaza yok.',
+  'объявл.': 'ilan',
+  'акций': 'kampanya',
+  'Смотреть магазин': 'Mağazayı Gör',
+  'Объявлений пока нет. Будьте первым!': 'Henüz ilan yok. İlk ilanı siz verin!',
+  'км от вас': 'km uzaklıkta',
+  'Неактуально • Возможно, продано': 'Güncel Değil • Satılmış Olabilir',
+  'Предложить цену ($)': 'Fiyat Teklif Et ($)',
+  'Торг': 'Pazarlık',
+  'Связаться через WhatsApp': 'WhatsApp ile İletişim',
+  'Нет контактов': 'İletişim Yok',
+  'Поделиться': 'Paylaş',
+  'Пожаловаться': 'Şikayet Et',
+  'Продано': 'Satıldı',
+  'Передумал': 'Vazgeçtim',
+  'Продлить бесплатно': 'Ücretsiz Uzat',
+  'Продлить': 'Uzat',
+  'Редактировать': 'Düzenle',
+  'Редакт.': 'Düzenle',
+  'В архив': 'Arşive',
+  'Удалить навсегда': 'Kalıcı Sil',
+  'лайков': 'beğeni',
+  'просмотров': 'görüntülenme',
+  'Тема экрана': 'Ekran Teması',
+  'Сетка': 'Izgara',
+  'Список': 'Liste',
+  'Лента': 'Akış',
+  'Магазин': 'Mağaza',
+  'Женские объявления 🌸': 'Kadınlara Özel İlanlar 🌸',
+  'Панель Администратора': 'Yönetici Paneli',
+  'Изменить анкету': 'Profili Düzenle',
+  'Выйти': 'Çıkış Yap',
+  'Магазин не найден': 'Mağaza bulunamadı',
+  'Связаться': 'İletişim',
+  'Настройки': 'Ayarlar',
+  'Управление магазином': 'Mağaza Yönetimi',
+  'Полная панель': 'Tam Panel',
+  'Добавить товар': 'Ürün Ekle',
+  'Создать комбо': 'Kombo Oluştur',
+  'Бэкап (JSON)': 'Yedekle (JSON)',
+  'Акции магазина:': 'Mağaza Kampanyaları:',
+  'товаров в комплекте': 'ürün pakette',
+  'Все товары': 'Tüm Ürünler',
+  'Товаров пока нет': 'Henüz ürün yok',
+  'Скидка': 'İndirim',
+  'В комбо': 'Komboya',
+  'Аукцион': 'Açık Artırma',
+  'Изменить': 'Düzenle',
+  'Установить скидку / Акцию': 'İndirim / Kampanya Uygula',
+  'Текущая цена:': 'Mevcut Fiyat:',
+  'Новая цена ($)': 'Yeni Fiyat ($)',
+  'Срок действия': 'Geçerlilik Süresi',
+  'Бессрочно': 'Süresiz',
+  '24 часа (Скидка дня)': '24 Saat (Günün Fırsatı)',
+  '3 дня (Выходные)': '3 Gün (Hafta Sonu)',
+  '7 дней (Неделя скидок)': '7 Gün (İndirim Haftası)',
+  'Применить скидку': 'İndirimi Uygula',
+  'Отменить скидку (вернуть старую цену)': 'İndirimi Kaldır (Eski Fiyata Dön)',
+  'Войти': 'Giriş Yap',
+  'Зарегистрироваться': 'Kayıt Ol',
+  'Новые': 'En Yeniler',
+  'Дешевые': 'En Ucuzlar',
+  'Дорогие': 'En Pahalılar',
+  'Популярные': 'Popülerler',
+  'Локация не выбрана': 'Konum seçilmedi',
+  'Приватность активна': 'Gizlilik aktif',
+  'Точные координаты': 'Tam koordinatlar',
+  'Объявление успешно продлено и поднято в топ!': 'İlan başarıyla uzatıldı ve üst sıraya taşındı!'
+};
+
 function t(keyOrText) {
   if (!keyOrText) return '';
   const lang = (typeof currentLang !== 'undefined' && currentLang === 'tr') ? 'tr' : 'ru';
@@ -336,9 +429,31 @@ function t(keyOrText) {
   if (CATEGORY_I18N[keyOrText]) {
     return CATEGORY_I18N[keyOrText][lang] || CATEGORY_I18N[keyOrText].tr;
   }
+
+  if (lang === 'tr' && REGION_NAMES_TR[keyOrText]) return REGION_NAMES_TR[keyOrText];
+  if (lang === 'ru' && REGION_NAMES_RU[keyOrText]) return REGION_NAMES_RU[keyOrText];
+  if (lang === 'ru') {
+    for (const [code, trName] of Object.entries(REGION_NAMES_TR)) {
+      if (trName === keyOrText) return REGION_NAMES_RU[code] || keyOrText;
+    }
+  }
+  if (lang === 'tr') {
+    for (const [code, ruName] of Object.entries(REGION_NAMES_RU)) {
+      if (ruName === keyOrText) return REGION_NAMES_TR[code] || keyOrText;
+    }
+  }
   
   if (I18N[lang] && I18N[lang][keyOrText]) {
     return I18N[lang][keyOrText];
+  }
+
+  if (lang === 'tr' && DIRECT_PHRASES_TR[keyOrText]) {
+    return DIRECT_PHRASES_TR[keyOrText];
+  }
+  if (lang === 'ru') {
+    for (const [ruP, trP] of Object.entries(DIRECT_PHRASES_TR)) {
+      if (trP === keyOrText) return ruP;
+    }
   }
   
   if (lang === 'tr' && I18N.ru) {

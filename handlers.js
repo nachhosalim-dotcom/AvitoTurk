@@ -1336,13 +1336,42 @@ function toggleTheme() {
 function changeLanguage(lang) {
   currentLang = lang;
   localStorage.setItem('bs_app_lang', lang);
+  localStorage.setItem('bs_user_lang_locked', 'true');
+  if (currentUser) {
+    currentUser.lang = lang;
+    if (currentUser.shop && typeof currentUser.shop === 'object') {
+      currentUser.shop.lang = lang;
+      if (supabaseClient && currentUser.uid) {
+        supabaseClient.from('users').update({ shop: currentUser.shop }).eq('uid', currentUser.uid).then(() => {}, () => {});
+      }
+    }
+    saveUserSession(currentUser, true);
+  }
   document.documentElement.dir = 'ltr';
   document.documentElement.lang = lang;
+
+  // Подсвечиваем активную кнопку RU / TR в шапке и сайдбаре
+  document.querySelectorAll('button[onclick^="changeLanguage"]').forEach(btn => {
+    const isThisLang = btn.getAttribute('onclick')?.includes(`'${lang}'`);
+    btn.style.background = isThisLang ? '#0095f6' : '';
+    btn.style.color = isThisLang ? '#ffffff' : '';
+    btn.style.borderColor = isThisLang ? '#0095f6' : '';
+  });
+
   translateStaticUI(lang);
+  updateRegionLabel();
+  fillCategorySelect(byId('ad-category'));
+  fillCategorySelect(byId('edit-ad-category'));
+  updateLocationSummaryUI();
   renderCategoryPills();
   renderAds();
   updateNavState();
-  if (!byId('modal-profile').classList.contains('hidden')) openProfileModal();
+  if (byId('modal-profile') && !byId('modal-profile').classList.contains('hidden')) openProfileModal();
+  if (byId('modal-ad-detail') && !byId('modal-ad-detail').classList.contains('hidden') && window._lastOpenedAdId) {
+    openAdDetail(window._lastOpenedAdId, false);
+  }
+  if (byId('modal-my-shop') && !byId('modal-my-shop').classList.contains('hidden')) openMyShopModal();
+  if (byId('modal-auth') && !byId('modal-auth').classList.contains('hidden')) openAuthModal();
   showToast(lang === 'tr' ? 'Dil Türkçe olarak değiştirildi' : 'Язык переключен на русский', 'info');
 }
 
@@ -2374,11 +2403,12 @@ async function handleTelegramAutoLogin(selectedGender = null) {
       res = await r.json();
     } catch (e) { error = e; }
 
-    if (res && res.need_gender) {
+if (res && res.need_gender) {
       pendingTelegramUser = tgUser;
-      // Если язык пользователя Telegram турецкий — ставим TR по умолчанию, иначе RU
+      const savedLang = localStorage.getItem('bs_app_lang');
+      const isLocked = localStorage.getItem('bs_user_lang_locked') === 'true';
       const tgLangCode = (tgUser.language_code || '').toLowerCase();
-      const initialLang = tgLangCode.startsWith('tr') ? 'tr' : 'ru';
+      const initialLang = (isLocked && savedLang) ? savedLang : (tgLangCode.startsWith('tr') ? 'tr' : 'ru');
       setTgOnboardingLang(initialLang);
       openModal('modal-tg-gender');
       return;
@@ -2394,6 +2424,14 @@ async function handleTelegramAutoLogin(selectedGender = null) {
       passwordHash: res.user.password_hash,
       favorites: Array.isArray(res.user.favorites) ? res.user.favorites : []
     };
+
+    // Восстанавливаем язык, выбранный пользователем при регистрации, и не даем Telegram его менять
+    const userSavedLang = authUser.shop?.lang || (localStorage.getItem('bs_user_lang_locked') === 'true' ? localStorage.getItem('bs_app_lang') : null);
+    if (userSavedLang && (userSavedLang === 'ru' || userSavedLang === 'tr') && userSavedLang !== currentLang) {
+      changeLanguage(userSavedLang);
+    } else if (tgOnboardSelectedLang && !localStorage.getItem('bs_user_lang_locked')) {
+      changeLanguage(tgOnboardSelectedLang);
+    }
 
     const idx = users.findIndex(u => u.uid === authUser.uid);
     if (idx !== -1) users[idx] = authUser;

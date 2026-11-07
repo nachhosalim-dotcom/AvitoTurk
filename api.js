@@ -532,10 +532,13 @@ async function translateDynamic(text, targetLang = currentLang) {
   const clean = text.trim();
   if (!clean || clean.length < 2) return text;
 
-  // Если текст уже на целевом языке (кириллица при ru или латиница без кириллицы при tr), не переводим зря
-  const hasCyrillic = /[а-яёА-ЯЁ]/.test(clean);
-  if (targetLang === 'ru' && hasCyrillic) return clean;
-  if (targetLang === 'tr' && !hasCyrillic) return clean;
+  const cyrillicCount = (clean.match(/[а-яёА-ЯЁ]/g) || []).length;
+  const turkishChars = /[ğüşıöçĞÜŞİÖÇ]/.test(clean);
+  const latinCount = (clean.match(/[a-zA-ZğüşıöçĞÜŞİÖÇ]/g) || []).length;
+
+  // Пропускаем перевод только если весь текст уже полностью на целевом языке
+  if (targetLang === 'ru' && cyrillicCount > latinCount && !turkishChars) return clean;
+  if (targetLang === 'tr' && cyrillicCount === 0) return clean;
 
   const cacheKey = `${targetLang}_${clean}`;
   if (TRANSLATE_CACHE[cacheKey]) return TRANSLATE_CACHE[cacheKey];
