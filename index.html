@@ -982,11 +982,16 @@ body { top: 0px !important; }
 <button onclick="adminPanelBack()" class="app-back" title="Назад"><i class="fa-solid fa-arrow-left"></i></button>
 <div class="flex items-center gap-2"><i class="fa-solid fa-user-shield" style="color:#0095f6"></i><h3 class="text-sm font-bold t1">Панель управления Главного Администратора</h3></div>
 </div>
-<div class="border-b b-ig overflow-x-auto no-scrollbar text-sm shrink-0 flex gap-4 px-4" role="tablist" aria-label="Разделы админ-панели">
-<button id="atab-overview" onclick="switchAdminTab('overview')" class="py-3 whitespace-nowrap">Обзор</button>
-<button id="atab-users" onclick="switchAdminTab('users')" class="py-3 whitespace-nowrap">Пользователи</button>
-<button id="atab-ads" onclick="switchAdminTab('ads')" class="py-3 whitespace-nowrap">Объявления</button>
-<!-- Финансовые вкладки админки скрыты -->
+<div class="border-b b-ig overflow-x-auto no-scrollbar text-xs sm:text-sm font-bold shrink-0 flex gap-3 sm:gap-4 px-4" role="tablist" aria-label="Разделы админ-панели">
+  <button id="atab-overview" onclick="switchAdminTab('overview')" class="py-3 whitespace-nowrap">Обзор</button>
+  <button id="atab-ads" onclick="switchAdminTab('ads')" class="py-3 whitespace-nowrap">Объявления</button>
+  <button id="atab-users" onclick="switchAdminTab('users')" class="py-3 whitespace-nowrap">Пользователи</button>
+  <button id="atab-shops" onclick="switchAdminTab('shops')" class="py-3 whitespace-nowrap">Магазины</button>
+  <button id="atab-reports" onclick="switchAdminTab('reports')" class="py-3 whitespace-nowrap text-red-400">Жалобы</button>
+  <button id="atab-cats" onclick="switchAdminTab('cats')" class="py-3 whitespace-nowrap">Категории</button>
+  <button id="atab-rates" onclick="switchAdminTab('rates')" class="py-3 whitespace-nowrap">Курсы</button>
+  <button id="atab-archive" onclick="switchAdminTab('archive')" class="py-3 whitespace-nowrap">Архив</button>
+  <button id="atab-backup" onclick="switchAdminTab('backup')" class="py-3 whitespace-nowrap">Бэкап БД</button>
 </div>
 <div id="admin-tab-content" class="p-5 overflow-y-auto flex-1 space-y-4 text-sm modal-scroll-body"></div>
 </div>

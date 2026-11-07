@@ -1041,13 +1041,28 @@ function renderAdminTabContent() {
             }).join('')}
         </div>
     </div>`; 
-  } else if (tab === 'users') { 
+} else if (tab === 'users') { 
+    const uQuery = (window.adminUserSearchQuery || '').toLowerCase().trim();
+    const filteredUsers = users.filter(u => {
+      if (!uQuery) return true;
+      return (u.username && u.username.toLowerCase().includes(uQuery)) ||
+             (u.kunya && u.kunya.toLowerCase().includes(uQuery)) ||
+             (u.whatsapp && u.whatsapp.toLowerCase().includes(uQuery)) ||
+             (u.uid && u.uid.toLowerCase().includes(uQuery));
+    });
+
     c.innerHTML = `
     <div class="space-y-3">
-        <h4 class="font-bold t1 text-xs">Пользователи (${users.length})</h4>
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+            <h4 class="font-bold t1 text-xs">Пользователи (${filteredUsers.length} из ${users.length})</h4>
+            <input type="text" placeholder="🔍 Поиск по имени, @username, WA..." value="${escapeHTML(window.adminUserSearchQuery || '')}" oninput="window.adminUserSearchQuery=this.value; renderAdminTabContent();" class="ig-input px-3 py-1.5 text-xs w-full sm:w-64">
+        </div>
         <div class="space-y-2 max-h-none overflow-y-auto pr-1">
-            ${users.map(u => {
-                const bal = Number(u.avitocashBalance ?? u.avitocash_balance ?? 0);
+            ${filteredUsers.map(u => {
+                const userAdsCount = ads.filter(a => a.sellerUsername && a.sellerUsername.toLowerCase() === u.username.toLowerCase()).length;
+                const isVer = isUserTelegramVerified(u);
+                const isTgAccount = !!(u.uid && String(u.uid).startsWith('u_tg_')) || !!(u.shop && u.shop.telegram_id);
+                const cleanWa = (u.whatsapp || '').replace(/\D/g, '');
                 return `
                 <div class="ig-card p-3 rounded-xl flex flex-col gap-2.5">
                     <div class="flex items-center justify-between gap-2">
@@ -1056,36 +1071,57 @@ function renderAdminTabContent() {
                                 ${u.avatar ? `<img src="${u.avatar}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user"></i>'}
                             </div>
                             <div class="min-w-0">
-<div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
+                                <div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
                                     <span>${escapeHTML(u.kunya || u.username)}</span> 
-                                    ${isUserTelegramVerified(u) ? IGSVG.verified() : ''}
+                                    ${isVer ? IGSVG.verified() : ''}
                                     <span class="t2 font-normal">(@${escapeHTML(u.username)})</span>
-                                    ${u.frozen ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-blue-500/15 text-blue-400">❄ ЗАМОРОЖЕН</span>' : ''}
+                                    ${isTgAccount ? '<span class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-sky-500/15 text-sky-400">TG</span>' : ''}
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded font-bold ${u.gender === 'FEMALE' ? 'bg-pink-500/15 text-pink-400' : 'bg-blue-500/15 text-blue-400'}">${u.gender === 'FEMALE' ? 'ЖЕН' : 'МУЖ'}</span>
+                                    ${u.frozen ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-red-500/15 text-red-400">❄ БАН</span>' : ''}
                                 </div>
-<div class="text-[10px] t2 flex items-center gap-2">
+                                <div class="text-[10px] t2 flex items-center gap-2 flex-wrap mt-0.5">
                                     <span>Роль: <b style="color:#f59e0b">${u.role}</b></span>
                                     ${u.whatsapp ? `<span>• WA: ${escapeHTML(u.whatsapp)}</span>` : ''}
+                                    <span class="opacity-60 font-mono">• ${escapeHTML(u.uid)}</span>
                                 </div>
                             </div>
                         </div>
-<div class="text-right shrink-0 bg-field px-2.5 py-1 rounded-lg border b-ig">
+                        <div class="text-right shrink-0 bg-field px-2.5 py-1 rounded-lg border b-ig">
                             <div class="text-[9px] t2 uppercase">${t('Объявлений')}</div>
-                            <div class="text-xs font-extrabold t1">${ads.filter(a => a.sellerUsername && a.sellerUsername.toLowerCase() === u.username.toLowerCase()).length}</div>
+                            <div class="text-xs font-extrabold t1">${userAdsCount}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5 pt-2 border-t b-ig justify-end flex-wrap">
+                        ${cleanWa.length >= 10 ? `<a href="https://wa.me/${cleanWa}" target="_blank" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(37,211,102,.12);color:#25D366;border-color:rgba(37,211,102,.3)" title="Написать в WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>` : ''}
+                        <a href="https://t.me/${encodeURIComponent((u.username || '').replace('@',''))}" target="_blank" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(34,158,217,.12);color:#229ED9;border-color:rgba(34,158,217,.3)" title="Открыть профиль Telegram"><i class="fa-brands fa-telegram"></i></a>
+                        <button onclick="adminToggleUserVerified('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="${u.verifiedShop ? 'background:rgba(0,149,246,.2);color:#0095f6;border-color:#0095f6' : 'background:var(--ig-field);color:var(--ig-text2);border-color:var(--ig-border)'}" title="${u.verifiedShop ? 'Снять синюю галочку' : 'Выдать синюю галочку верификации'}">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </button>
+                        <button onclick="adminQuickToggleGender('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(236,72,153,.1);color:#ec4899;border-color:rgba(236,72,153,.3)" title="Сменить пол (МУЖ / ЖЕН)">
+                            <i class="fa-solid fa-venus-mars"></i>
+                        </button>
+                        ${_0xSCAdmin() ? `
+                        <button onclick="adminQuickCycleRole('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.35)" title="Изменить роль (USER / ADMIN / SUPERUSER)">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </button>` : ''}
                         <button onclick="openCreateAdModalForUser('${jsArg(u.username)}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)" title="Подать объявление от имени пользователя">
                             <i class="fa-solid fa-plus"></i>
                         </button>
                         <button onclick="openEditProfileModal('${jsArg(u.username)}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(0,149,246,.1);color:#0095f6;border-color:rgba(0,149,246,.3)" title="Редактировать анкету">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
-                        <button onclick="toggleFreezeUser('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="${u.frozen ? 'background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)' : 'background:rgba(96,165,250,.1);color:#60a5fa;border-color:rgba(96,165,250,.3)'}" title="${u.frozen ? 'Разморозить' : 'Заморозить'}">
+                        <button onclick="toggleFreezeUser('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="${u.frozen ? 'background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)' : 'background:rgba(96,165,250,.1);color:#60a5fa;border-color:rgba(96,165,250,.3)'}" title="${u.frozen ? 'Разморозить' : 'Заморозить (Бан)'}">
                             <i class="fa-solid ${u.frozen ? 'fa-lock-open' : 'fa-lock'}"></i>
                         </button>
-<!-- Кнопка биллинга удалена -->
+                        ${userAdsCount > 0 ? `
+                        <button onclick="adminPurgeUserAds('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.35)" title="Удалить все объявления автора (${userAdsCount} шт.)">
+                            <i class="fa-solid fa-broom"></i>
+                        </button>` : ''}
                         <button onclick="archiveUserWithConfirm('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(147,51,234,.1);color:#a855f7;border-color:rgba(147,51,234,.3)" title="Перенести в архив">
                             <i class="fa-solid fa-box-archive"></i>
+                        </button>
+                        <button onclick="deleteUserPermanently('${u.uid}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(237,73,86,.15);color:#ed4956;border-color:rgba(237,73,86,.4)" title="Удалить аккаунт и объявления навсегда">
+                            <i class="fa-solid fa-user-xmark"></i>
                         </button>
                     </div>
                 </div>`;
@@ -1095,17 +1131,28 @@ function renderAdminTabContent() {
   } else if (tab === 'ads') { 
     const activeList = ads.filter(a => a.status === 'ACTIVE'); 
     const archivedList = ads.filter(a => a.status !== 'ACTIVE'); 
-    const list = adminAdsTab === 'active' ? activeList : archivedList; 
+    const baseList = adminAdsTab === 'active' ? activeList : archivedList;
+    const adQuery = (window.adminAdSearchQuery || '').toLowerCase().trim();
+    const list = baseList.filter(a => {
+      if (!adQuery) return true;
+      return (a.title && a.title.toLowerCase().includes(adQuery)) ||
+             (a.sellerUsername && a.sellerUsername.toLowerCase().includes(adQuery)) ||
+             (a.id && a.id.toLowerCase().includes(adQuery)) ||
+             (a.city && a.city.toLowerCase().includes(adQuery));
+    });
     
     c.innerHTML = `
     <div class="space-y-3">
-        <div class="flex gap-2">
-            <button onclick="switchAdminAdsSubTab('active')" class="px-3 py-1.5 rounded-lg font-bold text-xs border ${adminAdsTab === 'active' ? 'text-white' : 'b-ig t2'}" style="${adminAdsTab === 'active' ? 'background:#0095f6;border-color:#0095f6' : ''}">
-                Активные (${activeList.length})
-            </button>
-            <button onclick="switchAdminAdsSubTab('archived')" class="px-3 py-1.5 rounded-lg font-bold text-xs border ${adminAdsTab === 'archived' ? 'text-white' : 'b-ig t2'}" style="${adminAdsTab === 'archived' ? 'background:#9333ea;border-color:#9333ea' : ''}">
-                Архив / Продано (${archivedList.length})
-            </button>
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex gap-2">
+                <button onclick="switchAdminAdsSubTab('active')" class="px-3 py-1.5 rounded-lg font-bold text-xs border ${adminAdsTab === 'active' ? 'text-white' : 'b-ig t2'}" style="${adminAdsTab === 'active' ? 'background:#0095f6;border-color:#0095f6' : ''}">
+                    Активные (${activeList.length})
+                </button>
+                <button onclick="switchAdminAdsSubTab('archived')" class="px-3 py-1.5 rounded-lg font-bold text-xs border ${adminAdsTab === 'archived' ? 'text-white' : 'b-ig t2'}" style="${adminAdsTab === 'archived' ? 'background:#9333ea;border-color:#9333ea' : ''}">
+                    Архив / Продано (${archivedList.length})
+                </button>
+            </div>
+            <input type="text" placeholder="🔍 Поиск по названию, ID, @автору..." value="${escapeHTML(window.adminAdSearchQuery || '')}" oninput="window.adminAdSearchQuery=this.value; renderAdminTabContent();" class="ig-input px-3 py-1.5 text-xs w-full sm:w-64">
         </div>
         <div class="space-y-2 max-h-none overflow-y-auto pr-1">
             ${list.length === 0 ? '<div class="text-center py-8 t2">Список объявлений пуст</div>' : list.map(a => {
@@ -1136,11 +1183,12 @@ function renderAdminTabContent() {
                             <div class="min-w-0">
                                 <div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
                                     <span class="truncate">${escapeHTML(a.title)}</span>
+                                    ${a.isWomenOnly ? '<span class="px-1.5 py-0.2 rounded text-[8px] font-bold bg-pink-500/20 text-pink-400">ЖЕН</span>' : ''}
                                     ${statusBadge}
                                     ${expiryBadge}
                                 </div>
                                 <div class="text-[10px] t2 truncate">
-                                    ${escapeHTML(a.city || 'Турция')} • @${escapeHTML(a.sellerUsername || 'неизвестно')} • Опубликовано: <b>${pubDateStr}</b> • 👁 ${a.views || 0} • ❤ ${(a.likes || []).length}
+                                    <span class="font-mono">${escapeHTML(a.id)}</span> • ${escapeHTML(a.city || 'Турция')} • @${escapeHTML(a.sellerUsername || 'неизвестно')} • <b>${pubDateStr}</b> • 👁 ${a.views || 0} • ❤ ${(a.likes || []).length}
                                 </div>
                             </div>
                         </div>
@@ -1151,6 +1199,12 @@ function renderAdminTabContent() {
                     </div>
                     <div class="flex items-center gap-1.5 pt-2 border-t b-ig justify-end flex-wrap">
                         ${a.status === 'ACTIVE' ? `
+                            <button onclick="bumpAdToTop('${a.id}'); renderAdminTabContent();" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(16,185,129,.15);color:#10b981;border-color:rgba(16,185,129,.4)" title="Поднять на 1-е место в ленте (В ТОП)">
+                                <i class="fa-solid fa-rocket"></i>
+                            </button>
+                            <button onclick="openQuickDiscountModal('${a.id}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.35)" title="Установить скидку / акцию">
+                                <i class="fa-solid fa-percent"></i>
+                            </button>
                             <button onclick="renewAdExpiry('${a.id}')" class="w-8 h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition-colors hover:bg-field" style="background:rgba(16,185,129,.1);color:#10b981;border-color:rgba(16,185,129,.3)" title="Продлить публикацию еще на 30 дней">
                                 <i class="fa-solid fa-arrows-rotate"></i>
                             </button>
@@ -1559,10 +1613,23 @@ ${!isRealOwner && !ad.isFree ? `
               <i class="fa-solid fa-box-archive text-xs"></i>
               <span class="truncate w-full text-center">${t('В архив')}</span>
             </button>
-            <button onclick="deleteAdWithConfirm('${ad.id}')" class="h-10 px-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center shadow-sm transition shrink-0" style="background:#ed4956" title="${t('Удалить навсегда')}">
+<button onclick="deleteAdWithConfirm('${ad.id}')" class="h-10 px-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center shadow-sm transition shrink-0" style="background:#ed4956" title="${t('Удалить навсегда')}">
               <i class="fa-solid fa-trash"></i>
             </button>
+          </div>
+          ${(currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN')) ? `
+          <div class="grid grid-cols-3 gap-1.5 pt-2 mt-2 border-t b-ig">
+            <button onclick="bumpAdToTop('${ad.id}'); closeModal('modal-ad-detail');" class="py-2 px-2 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(16,185,129,.12);color:#10b981;border-color:rgba(16,185,129,.35)">
+              <i class="fa-solid fa-rocket"></i> В ТОП ленты
+            </button>
+            <button onclick="openQuickDiscountModal('${ad.id}')" class="py-2 px-2 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(249,115,22,.12);color:#f97316;border-color:rgba(249,115,22,.35)">
+              <i class="fa-solid fa-percent"></i> Скидка
+            </button>
+            <button onclick="adminBanSellerFromAd('${ad.id}')" class="py-2 px-2 rounded-xl text-[10px] font-extrabold border flex items-center justify-center gap-1 transition active:scale-95" style="background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.4)">
+              <i class="fa-solid fa-gavel"></i> Бан автора
+            </button>
           </div>` : ''}
+          ` : ''}
       </div>
     </div>
   </div>`;
@@ -3899,4 +3966,146 @@ function handleCategoryClick(catId) {
   currentPage = 1;
   renderCategoryPills();
   renderAds();
+}
+/* ================= SUPERUSER POWER TOOLS ================= */
+
+async function adminToggleUserVerified(uid) {
+  if (!currentUser || (currentUser.role !== 'SUPERUSER' && currentUser.role !== 'ADMIN')) return;
+  const u = users.find(x => x.uid === uid);
+  if (!u) return;
+  const nextVer = !u.verifiedShop;
+  u.verifiedShop = nextVer;
+  if (u.shop) u.shop.isVerified = nextVer;
+
+  if (supabaseClient) {
+    await supabaseClient.rpc('admin_manage_user', {
+      p_caller_id: currentUser.uid,
+      p_target_uid: u.uid,
+      p_verified_shop: nextVer
+    });
+  }
+  renderAdminTabContent();
+  renderAds();
+  showToast(nextVer ? `Синяя галочка выдана @${u.username}` : `Синяя галочка снята у @${u.username}`, 'success');
+}
+
+async function adminQuickToggleGender(uid) {
+  if (!currentUser || (currentUser.role !== 'SUPERUSER' && currentUser.role !== 'ADMIN')) return;
+  const u = users.find(x => x.uid === uid);
+  if (!u) return;
+  const nextGender = u.gender === 'FEMALE' ? 'MALE' : 'FEMALE';
+  u.gender = nextGender;
+
+  if (supabaseClient) {
+    await supabaseClient.from('users').update({ gender: nextGender }).eq('uid', u.uid);
+  }
+  if (currentUser.uid === u.uid) {
+    currentUser.gender = nextGender;
+    saveUserSession(currentUser, true);
+  }
+  renderAdminTabContent();
+  renderCategoryPills();
+  renderAds();
+  showToast(`Пол @${u.username} изменен на: ${nextGender === 'FEMALE' ? 'Женский' : 'Мужской'}`, 'info');
+}
+
+async function adminQuickCycleRole(uid) {
+  if (!_0xSCAdmin()) {
+    showToast('Роли может менять только Главный Администратор (SUPERUSER)', 'error');
+    return;
+  }
+  const u = users.find(x => x.uid === uid);
+  if (!u) return;
+  if (u.uid === currentUser.uid) {
+    showToast('Нельзя понизить роль самому себе', 'warning');
+    return;
+  }
+  const roles = ['USER', 'ADMIN', 'SUPERUSER'];
+  const nextRole = roles[(roles.indexOf(u.role || 'USER') + 1) % roles.length];
+
+  showConfirmModal('Смена прав доступа', `Назначить пользователю @${u.username} роль "${nextRole}"?`, async () => {
+    if (supabaseClient) {
+      const { data: res, error } = await supabaseClient.rpc('admin_manage_user', {
+        p_caller_id: currentUser.uid,
+        p_target_uid: u.uid,
+        p_role: nextRole
+      });
+      if (error || !res || !res.success) {
+        showToast(res?.error || 'Ошибка смены роли в БД', 'error');
+        return;
+      }
+    }
+    u.role = nextRole;
+    renderAdminTabContent();
+    showToast(`Роль @${u.username} изменена на ${nextRole}`, 'success');
+  });
+}
+
+function adminPurgeUserAds(uid) {
+  if (!currentUser || (currentUser.role !== 'SUPERUSER' && currentUser.role !== 'ADMIN')) return;
+  const u = users.find(x => x.uid === uid);
+  if (!u) return;
+  const userAds = ads.filter(a => (a.sellerUid && a.sellerUid === u.uid) || (a.sellerUsername && a.sellerUsername.toLowerCase() === u.username.toLowerCase()));
+  if (!userAds.length) {
+    showToast('У пользователя нет объявлений', 'info');
+    return;
+  }
+
+  showConfirmModal('Зачистка объявлений', `Удалить навсегда ВСЕ объявления (${userAds.length} шт.) пользователя @${u.username}?`, async () => {
+    const ids = userAds.map(a => a.id);
+    ids.forEach(id => markAdDeletedLocally(id));
+    ads = ads.filter(a => !ids.includes(a.id));
+    saveCachedAds();
+
+    if (supabaseClient) {
+      await supabaseClient.from('ads').delete().in('id', ids);
+    }
+    renderAdminTabContent();
+    renderCategoryPills();
+    renderAds();
+    showToast(`Удалено ${ids.length} объявлений автора @${u.username}`, 'success');
+  });
+}
+
+function adminBanSellerFromAd(adId) {
+  if (!currentUser || (currentUser.role !== 'SUPERUSER' && currentUser.role !== 'ADMIN')) return;
+  const ad = ads.find(a => a.id === adId);
+  if (!ad) return;
+  const seller = users.find(u => (u.uid && ad.sellerUid && u.uid === ad.sellerUid) || (u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase()));
+
+  if (seller && seller.role === 'SUPERUSER') {
+    showToast('Нельзя заблокировать Главного Администратора!', 'error');
+    return;
+  }
+
+  showConfirmModal('Блокировка нарушителя', `Заблокировать автора @${ad.sellerUsername || 'неизвестно'} и удалить все его объявления из ленты?`, async () => {
+    const targetUsername = (ad.sellerUsername || '').toLowerCase();
+    const targetAds = ads.filter(a => (a.sellerUid && ad.sellerUid && a.sellerUid === ad.sellerUid) || (a.sellerUsername && a.sellerUsername.toLowerCase() === targetUsername));
+    const ids = targetAds.map(x => x.id);
+
+    ids.forEach(id => markAdDeletedLocally(id));
+    ads = ads.filter(a => !ids.includes(a.id));
+    saveCachedAds();
+
+    if (supabaseClient) {
+      if (ids.length) await supabaseClient.from('ads').delete().in('id', ids);
+      if (seller && seller.uid) {
+        await supabaseClient.rpc('admin_toggle_archive_user', {
+          p_target_uid: seller.uid,
+          p_archive_status: true
+        });
+      }
+    }
+
+    if (seller) {
+      seller.isArchived = true;
+      users = users.filter(x => x.uid !== seller.uid);
+      archivedUsers.push(seller);
+    }
+
+    closeModal('modal-ad-detail');
+    renderCategoryPills();
+    renderAds();
+    showToast(`Автор @${ad.sellerUsername} заблокирован, удалено объявлений: ${ids.length}`, 'success');
+  });
 }
