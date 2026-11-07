@@ -2315,11 +2315,11 @@ function setTgOnboardingLang(lang) {
   const rulesTitle = byId('tg-onboard-rules-title');
   if (rulesTitle) rulesTitle.innerText = isTr ? 'Platformun Kesin Kuralları:' : 'Строгие правила площадки:';
 
-  const rulesText = byId('tg-onboard-rules-text');
+const rulesText = byId('tg-onboard-rules-text');
   if (rulesText) {
     rulesText.innerHTML = isTr
       ? 'Her türlü <b>silah, mühimmat, uyuşturucu, yasa dışı madde ve kaçak ürünlerin</b> yayınlanması kesinlikle yasaktır. Kuralları ihlal eden hesaplar kalıcı olarak engellenir. Bu servis yalnızca sivil bir seri ilan platformudur.'
-      : 'Категорически <b>запрещена</b> публикация любого оружия, боеприпасов, комплектующих, запрещенных веществ, наркотиков и контрабанды. Нарушители блокируются навсегда с передачей данных. Сервис является исключительно гражданской торговой площадкой.';
+      : 'Категорически <b>запрещена</b> публикация любого оружия, боеприпасов, комплектующих, запрещенных веществ, наркотиков и контрабанды. Нарушители блокируются навсегда. Сервис является исключительно гражданской торговой площадкой.';
   }
 
   const genderPrompt = byId('tg-onboard-gender-prompt');
