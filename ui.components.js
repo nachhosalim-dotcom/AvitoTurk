@@ -1999,7 +1999,7 @@ async function finalizeProfileSave(u, orig, nl, nk, nw, na) {
     if (!pw || !pw.success) { showToast((pw && pw.error) || 'Не удалось сменить пароль', 'error'); return; }
   }
   u.role = u.role || 'USER';
-  if (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN') && currentUser.uid !== u.uid) {
+if (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN')) {
     u.gender = byId('edit-profile-gender').value;
     const newRole = byId('edit-profile-role').value;
     if (newRole !== (u.role || 'USER')) {
@@ -2019,6 +2019,7 @@ async function finalizeProfileSave(u, orig, nl, nk, nw, na) {
         }
       }
       u.role = newRole;
+      if (currentUser.uid === u.uid) currentUser.role = newRole;
     }
   }
   u.avatar = na;
@@ -4034,10 +4035,6 @@ async function adminQuickCycleRole(uid) {
   }
   const u = users.find(x => x.uid === uid);
   if (!u) return;
-  if (u.uid === currentUser.uid) {
-    showToast('Нельзя понизить роль самому себе', 'warning');
-    return;
-  }
   const roles = ['USER', 'ADMIN', 'SUPERUSER'];
   const nextRole = roles[(roles.indexOf(u.role || 'USER') + 1) % roles.length];
 
