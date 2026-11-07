@@ -1421,7 +1421,7 @@ async function openAdDetail(adId, countView = true) {
   if (countView) {
     ad.views = (ad.views || 0) + 1;
     saveCachedAds();
-    if (supabaseClient) supabaseClient.from('ads').update({ views: ad.views }).eq('id', adId);
+    if (supabaseClient) supabaseClient.rpc('add_view', { p_ad_id: adId }).then(() => {}, () => {});
   }
   const content = byId('detail-content');
   if (!content) return;

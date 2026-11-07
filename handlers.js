@@ -1214,9 +1214,10 @@ function doToggleLike(adId) {
   if (typeof saveCachedCombos === 'function') saveCachedCombos();
 
   if (supabaseClient) {
-    const table = isCombo ? 'combos' : 'ads';
-    supabaseClient.from(table).update({ likes: target.likes }).eq('id', adId).then(({ error }) => {
-      if (error) console.warn('Sync like error:', error);
+    // Лайк ставится на сервере (RPC toggle_like): чужие объявления напрямую менять нельзя
+    supabaseClient.rpc('toggle_like', { p_id: adId }).then(({ data, error }) => {
+      if (error || !data || !data.success) { console.warn('Sync like error:', error || (data && data.error)); return; }
+      if (Array.isArray(data.likes)) target.likes = data.likes;
     });
   }
   return true; 
@@ -2360,16 +2361,18 @@ async function handleTelegramAutoLogin(selectedGender = null) {
   if (!supabaseClient) return;
 
   try {
-    const payload = {
-      p_tg_id: tgUser.id,
-      p_first_name: tgUser.first_name || '',
-      p_last_name: tgUser.last_name || '',
-      p_username: tgUser.username || null,
-      p_photo_url: tgUser.photo_url || null,
-      p_gender: selectedGender
-    };
-
-    const { data: res, error } = await supabaseClient.rpc('auth_or_register_telegram', payload);
+    // Вход через Telegram проверяется на сервере (/api/tg-auth): подпись initData подделать нельзя
+    const initData = tg.initData || '';
+    if (!initData) return;
+    let res = null, error = null;
+    try {
+      const r = await fetch('/api/tg-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, gender: selectedGender })
+      });
+      res = await r.json();
+    } catch (e) { error = e; }
 
     if (res && res.need_gender) {
       pendingTelegramUser = tgUser;
