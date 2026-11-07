@@ -81,7 +81,19 @@ function getListingById(id) {
 function getSellerWhatsapp(ad) { if (!ad) return ''; const s = users.find(u => u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase()); return String((s && s.whatsapp) ? s.whatsapp : (ad.sellerWhatsapp || '')); }
 function getSellerKunya(ad) { if (!ad) return ''; const s = users.find(u => u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase()); return (s && s.kunya) ? s.kunya : (ad.sellerKunya || ad.sellerUsername || ''); }
 function getSellerAvatar(ad) { if (!ad) return null; const s = users.find(u => u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase()); return s?.avatar || null; }
-function getSellerVerified(ad) { if (ad && ad.isCombo && typeof ad.verified === 'boolean') return ad.verified; const s = users.find(u => u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase()); return !!(s && (s.verifiedShop || (s.shop && s.shop.isVerified))); }
+function isUserTelegramVerified(u, fallbackUid = '') {
+  if (!u && !fallbackUid) return false;
+  if (fallbackUid && String(fallbackUid).startsWith('u_tg_')) return true;
+  if (!u) return false;
+  return !!(u.verifiedShop || (u.shop && (u.shop.isVerified || u.shop.telegram_id)) || (u.uid && String(u.uid).startsWith('u_tg_')));
+}
+
+function getSellerVerified(ad) { 
+  if (!ad) return false;
+  if (ad.isCombo && typeof ad.verified === 'boolean') return ad.verified; 
+  const s = users.find(u => (u.uid && ad.sellerUid && u.uid === ad.sellerUid) || (u.username && ad.sellerUsername && u.username.toLowerCase() === ad.sellerUsername.toLowerCase())); 
+  return isUserTelegramVerified(s, ad.sellerUid); 
+}
 function getCategoryName(catId) { const c = categories.find(x => x.id === catId); return c ? c.name : 'Прочее'; }
 function timeAgo(ts) { 
   if (!ts) return ''; 
@@ -1044,9 +1056,10 @@ function renderAdminTabContent() {
                                 ${u.avatar ? `<img src="${u.avatar}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user"></i>'}
                             </div>
                             <div class="min-w-0">
-                                <div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
+<div class="font-bold t1 text-xs truncate flex items-center gap-1.5 flex-wrap">
                                     <span>${escapeHTML(u.kunya || u.username)}</span> 
-                                    <span class="t2 font-normal">(@${escapeHTML(u.username)})</span> 
+                                    ${isUserTelegramVerified(u) ? IGSVG.verified() : ''}
+                                    <span class="t2 font-normal">(@${escapeHTML(u.username)})</span>
                                     ${u.frozen ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-blue-500/15 text-blue-400">❄ ЗАМОРОЖЕН</span>' : ''}
                                 </div>
 <div class="text-[10px] t2 flex items-center gap-2">
@@ -1716,8 +1729,9 @@ function openProfileModal() {
                     ${currentUser.avatar ? `<img src="${currentUser.avatar}" class="w-full h-full object-cover">` : '<i class="fa-solid fa-user text-base t2"></i>'}
                 </div>
                 <div class="min-w-0">
-                    <div class="text-sm font-bold t1 truncate flex items-center gap-1.5">
+<div class="text-sm font-bold t1 truncate flex items-center gap-1.5">
                         <span class="truncate">${escapeHTML(currentUser.kunya || currentUser.username)}</span>
+                        ${isUserTelegramVerified(currentUser) ? IGSVG.verified() : ''}
                         <span class="text-[9px] px-1.5 py-0.2 rounded bg-card border b-ig t2 shrink-0">${currentUser.role}</span>
                     </div>
                     <div class="text-[11px] t2 truncate">@${escapeHTML(currentUser.username)}${currentUser.whatsapp ? ' • ' + escapeHTML(currentUser.whatsapp) : ''}</div>
