@@ -945,7 +945,7 @@ function renderAdminTabContent() {
     const reportsCount = reports.length || 0;
     const categoriesCount = categories.length || 0;
     const ratesCount = EXCHANGE_RATES ? Object.keys(EXCHANGE_RATES).length : 0;
-    const marqueeCount = ((MARQUEE_SETTINGS.text || '').trim() || hasCloudMarqueeSettings) ? 1 : 0;
+    const marqueeCount = ((typeof MARQUEE_SETTINGS !== 'undefined' && MARQUEE_SETTINGS && (MARQUEE_SETTINGS.text || '').trim()) || (typeof hasCloudMarqueeSettings !== 'undefined' && hasCloudMarqueeSettings)) ? 1 : 0;
     const backupCount = BACKUPS_META ? Object.keys(BACKUPS_META).length : 0;
     c.innerHTML = `
 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
