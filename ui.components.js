@@ -1999,9 +1999,27 @@ async function finalizeProfileSave(u, orig, nl, nk, nw, na) {
     if (!pw || !pw.success) { showToast((pw && pw.error) || 'Не удалось сменить пароль', 'error'); return; }
   }
   u.role = u.role || 'USER';
-  if (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN') && currentUser.uid !== u.uid) { 
-    u.gender = byId('edit-profile-gender').value; 
-    u.role = byId('edit-profile-role').value; 
+  if (currentUser && (currentUser.role === 'SUPERUSER' || currentUser.role === 'ADMIN') && currentUser.uid !== u.uid) {
+    u.gender = byId('edit-profile-gender').value;
+    const newRole = byId('edit-profile-role').value;
+    if (newRole !== (u.role || 'USER')) {
+      if (currentUser.role !== 'SUPERUSER') {
+        showToast('Роли меняет только Главный Администратор', 'error');
+        return;
+      }
+      if (supabaseClient && u.uid) {
+        const { data: rr, error: re } = await supabaseClient.rpc('admin_manage_user', {
+          p_caller_id: currentUser.uid,
+          p_target_uid: u.uid,
+          p_role: newRole
+        });
+        if (re || !rr || !rr.success) {
+          showToast((rr && rr.error) || 'Не удалось изменить роль в базе', 'error');
+          return;
+        }
+      }
+      u.role = newRole;
+    }
   }
   u.avatar = na;
   u.whatsapp = nw; // ГАРАНТИРОВАННО ОБНОВЛЯЕМ WHATSAPP ЛОКАЛЬНО
