@@ -50,14 +50,20 @@ export default async function handler(req, res) {
       p_first_name: fromUser.first_name || '',
       p_last_name: fromUser.last_name || '',
       p_username: fromUser.username || null,
-      p_photo_url: null
+      p_photo_url: null,
+      p_gender: null // явно вызываем актуальную версию функции (с проверкой пола)
     });
     if (userErr) console.error('auth_or_register_telegram error:', userErr);
 
-    if (!userRes?.success || !userRes?.user?.uid) {
-      // новый пользователь (нужен выбор пола) или ошибка — без аккаунта объявление не публикуем
-      await sendTgMessage(chatId, '👋 Чтобы публиковать объявления через бота, сначала завершите регистрацию: откройте приложение и выберите пол — аккаунт создастся автоматически. После этого пришлите объявление ещё раз.', OPEN_APP_BUTTON);
+    if (userRes?.need_gender) {
+      // Этот Telegram-аккаунт ещё не зарегистрирован на сайте: регистрация (с выбором пола) проходит один раз в приложении
+      await sendTgMessage(chatId, '👋 Ваш Telegram ещё не подключён к Avito Türk. Откройте приложение и выберите пол — аккаунт создастся автоматически (один раз). После этого пришлите объявление ещё раз.', OPEN_APP_BUTTON);
       return res.status(200).send('Registration required');
+    }
+    if (!userRes?.success || !userRes?.user?.uid) {
+      console.error('Telegram auth failed:', userRes);
+      await sendTgMessage(chatId, '⚠️ Не удалось проверить аккаунт. Попробуйте чуть позже.');
+      return res.status(200).send('Auth failed');
     }
     if (userRes.user.frozen || userRes.user.is_archived) {
       await sendTgMessage(chatId, '⛔ Ваш аккаунт ограничен. Публикация недоступна.');
