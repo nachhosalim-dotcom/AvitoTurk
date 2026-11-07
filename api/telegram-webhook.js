@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
 const BOT_TOKEN = '9087986140:AAGq08Q5sSbM-ibyrqJ7bluZbq1rvq5wJBM';
-TELEGRAM_WEBHOOK_SECRET	ae7eGex3vUkGfyTenuVfoeUzfpgTxMbU
 const SUPABASE_URL = 'https://ilpwbpeznuqoyajipooc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlscHdicGV6bnVxb3lhamlwb29jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MzkwMDkzOSwiZXhwIjoyMTA5NDc2OTM5fQ.FKynoL3RwjCFR7eiJHzHYUZeU8aQIZgj39Wf3ngE3fc';
 
