@@ -1049,9 +1049,9 @@ function renderAdminTabContent() {
                                     <span class="t2 font-normal">(@${escapeHTML(u.username)})</span> 
                                     ${u.frozen ? '<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-blue-500/15 text-blue-400">❄ ЗАМОРОЖЕН</span>' : ''}
                                 </div>
-                                <div class="text-[10px] t2 flex items-center gap-2">
+<div class="text-[10px] t2 flex items-center gap-2">
                                     <span>Роль: <b style="color:#f59e0b">${u.role}</b></span>
-                                    <span>• WA: ${escapeHTML(u.whatsapp || '—')}</span>
+                                    ${u.whatsapp ? `<span>• WA: ${escapeHTML(u.whatsapp)}</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -1720,7 +1720,7 @@ function openProfileModal() {
                         <span class="truncate">${escapeHTML(currentUser.kunya || currentUser.username)}</span>
                         <span class="text-[9px] px-1.5 py-0.2 rounded bg-card border b-ig t2 shrink-0">${currentUser.role}</span>
                     </div>
-                    <div class="text-[11px] t2 truncate">@${escapeHTML(currentUser.username)} • ${escapeHTML(currentUser.whatsapp || 'WhatsApp')}</div>
+                    <div class="text-[11px] t2 truncate">@${escapeHTML(currentUser.username)}${currentUser.whatsapp ? ' • ' + escapeHTML(currentUser.whatsapp) : ''}</div>
                     <div class="flex gap-2 text-[10px] t1 pt-0.5">
                         <span><b>${myAds.length}</b> ${t('объявл.')}</span>
                         <span>• <b>${totalLikes}</b> ${t('лайков')}</span>
@@ -1837,8 +1837,8 @@ function openEditProfileModal(targetUsername) {
   const kunyaInp = byId('edit-profile-kunya');
   if (kunyaInp) kunyaInp.placeholder = isTr ? 'İsim / Lakap *' : 'Имя / Кунья *';
 
-  const waInp = byId('edit-profile-whatsapp');
-  if (waInp) waInp.placeholder = isTr ? 'WhatsApp Numarası *' : 'WhatsApp *';
+const waInp = byId('edit-profile-whatsapp');
+  if (waInp) waInp.placeholder = isTr ? 'WhatsApp Numarası (isteğe bağlı)' : 'Номер WhatsApp (необязательно)';
 
   const genderSel = byId('edit-profile-gender');
   if (genderSel && genderSel.options.length >= 2) {
@@ -1885,12 +1885,15 @@ function handleSaveProfile(e) {
   if (nl.toLowerCase() !== orig.toLowerCase() && users.some(u => u.username && u.username.toLowerCase() === nl.toLowerCase())) { 
     showToast('Логин занят!', 'error'); return; 
   }
-  const nwCheck = validateWhatsApp(nwRaw);
-  if (!nwCheck.valid) {
-    showToast(nwCheck.error, 'error');
-    return;
+let nw = '';
+  if (nwRaw) {
+    const nwCheck = validateWhatsApp(nwRaw);
+    if (!nwCheck.valid) {
+      showToast(nwCheck.error, 'error');
+      return;
+    }
+    nw = nwCheck.number;
   }
-  const nw = nwCheck.number;
   const u = users[idx]; u.username = nl; 
   if (npRaw && npRaw.trim()) { 
     sha256(npRaw.trim()).then(hashed => { 
